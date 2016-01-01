@@ -1,11 +1,4 @@
-import { Communicator, Config, Destination, GetResult, Message, Node } from './node';
-
-type TDetails = {
-    resolve: Function,
-    reject: Function,
-    timeout: NodeJS.Timer
-};
-type TMap = Map<number, TDetails>;
+import { Communicator, Config, Destination, GetResult, Message, Node, TDetails, TMap } from './node';
 
 class Transactions {
 

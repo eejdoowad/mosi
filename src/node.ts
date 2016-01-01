@@ -30,6 +30,13 @@ export interface Message {
 };
 export interface MessageListener { (message: Message, port: chrome.runtime.Port): void; }
 
+export type TDetails = {
+    resolve: Function,
+    reject: Function,
+    timeout: NodeJS.Timer
+};
+export type TMap = Map<number, TDetails>;
+
 export abstract class Node {
 
   actions: { [key: string]: Action };
@@ -46,5 +53,4 @@ export abstract class Node {
   errorHandler = (action: string) => (arg: any) => {
     console.error(`ERROR: No action type ${action}`);
   }
-  getLocal = async (action: string, arg: any, id = 0) => [{ id, v: await this.actionHandler(action)(arg, id)}];
 }

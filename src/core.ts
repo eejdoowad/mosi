@@ -1,4 +1,4 @@
-import { ActionDetails, Communicator, Config, Destination, GetResult, Message, Node  } from './node';
+import { ActionDetails, Communicator, Config, Destination, GetResult, Message, Node, TDetails, TMap  } from './node';
 
 interface Connection {
   port: chrome.runtime.Port;
@@ -8,6 +8,7 @@ interface Connection {
   tabId?: number;
   frameId?: number;
   closed?: boolean;
+  transactions: TMap;
 }
 
 class Connections {
@@ -23,7 +24,8 @@ class Connections {
     const frameId = sender.frameId;
     /** client ids start at 2: 0 refers to self, 1 refers to core */
     const id = this.nextId++;
-    const connection = { port, id, subs, onDisconnect, tabId, frameId }
+    const transactions: TMap = new Map();
+    const connection = { port, id, subs, onDisconnect, tabId, frameId, transactions };
     this.connectionsByPort.set(port, connection);
     this.connectionsById.set(id, connection);
     return id;
@@ -151,16 +153,29 @@ class Core extends Node {
     return [...this.connections.connectionsById.values()].filter(predicate);
   }
 
+  localGet = async (src: number, action: string, arg: any): Promise<GetResult> => ({
+    id: 1, v: await this.actionHandler(action)(arg, src)
+  })
+
   _get = async (src: number, dst: Destination, action: string, arg: any): Promise<GetResult[]> => {
     const [targetSelf, targets] = this.getTargets(dst);
-    if (targetSelf) return [{ id: 0, v: await this.actionHandler(action)(arg, src)}];
-    else {
-      targets.forEach((t) => 1);
-      return Promise.resolve([{id: 0, e: 'meow'}]);
-    }
+    const selfResult: Array<Promise<GetResult>> = targetSelf ? [this.localGet(src, action, arg)] : [];
+    return Promise.all([...selfResult, ...targets.map()]);
   }
 
   get = this._get.bind(undefined, 0);
+
+  createGet = (connection: Connection, src: number, tid: number, dst: Destination,
+    action: string, arg: any): Promise<GetResult> => {
+    return new Promise<GetResult>((resolve, reject) => {
+      connection.port.postMessage({ dst, t: 'get', action,  arg, tid });
+      const timeout = setTimeout(() => {
+        connection.transactions.delete(tid);
+        reject(`ERROR: no response received within ${1000}ms`);
+      }, 1000);
+      connection.transactions.set(tid, { resolve, reject, timeout });
+    });
+  }
 
   /**
    * Executes onDisconnt actions and deletes data associated with connection.
