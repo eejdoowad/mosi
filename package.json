@@ -1,6 +1,6 @@
 {
   "name": "mosi",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Simpler messaging for chrome extensions",
   "main": "dist/index.js",
   "scripts": {

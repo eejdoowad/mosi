@@ -1,3 +1,5 @@
+# This library is still in development and does not work yet
+
 # Mosi
 
 Mosi is a library designed to simplify messaging for Chrome extensions. It takes care of the low-level details needed to setup connections and send messages.
