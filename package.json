@@ -1,0 +1,38 @@
+{
+  "name": "mosi",
+  "version": "0.0.1",
+  "description": "Simpler messaging for chrome extensions",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc --project tsconfig.json && eslint --fix dist/*.js",
+    "watch": "npm run build -- --watch",
+    "clean": "rimraf dist",
+    "lint": "tslint --project tsconfig.json --force -t stylish",
+    "lint:fix": "npm run lint -- --fix",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "deploy": "echo \"No deploy specified\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lusakasa/saka-msg.git"
+  },
+  "author": "eejdoowad <eejdoowad@gmail.com>",
+  "license": "AGPL-3.0",
+  "bugs": {
+    "url": "https://github.com/lusakasa/saka-msg/issues"
+  },
+  "homepage": "https://github.com/lusakasa/saka-msg",
+  "devDependencies": {
+    "@types/chrome": "0.0.37",
+    "@types/uuid": "^2.0.29",
+    "eslint": "^3.12.2",
+    "eslint-plugin-promise": "^3.4.0",
+    "eslint-plugin-standard": "^2.0.1",
+    "rimraf": "^2.5.4",
+    "tslint": "^4.1.1",
+    "typescript": "^2.1.4"
+  },
+  "dependencies": {
+    "uuid": "^3.0.1"
+  }
+}
