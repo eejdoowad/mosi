@@ -14,14 +14,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/lusakasa/saka-msg.git"
+    "url": "git+https://github.com/eejdoowad/mosi.git"
   },
   "author": "eejdoowad <eejdoowad@gmail.com>",
-  "license": "AGPL-3.0",
+  "license": "MIT",
   "bugs": {
-    "url": "https://github.com/lusakasa/saka-msg/issues"
+    "url": "https://github.com/eejdoowad/mosi/issues"
   },
-  "homepage": "https://github.com/lusakasa/saka-msg",
+  "homepage": "https://github.com/eejdoowad/mosi",
   "devDependencies": {
     "@types/chrome": "0.0.37",
     "@types/uuid": "^2.0.29",
