@@ -1,16 +1,16 @@
 {
   "compileOnSave": true,
   "compilerOptions": {
-    "target": "es2016",
+    "target": "es2017",
     "module": "es6",
-    "lib": ["dom", "es2016"],
+    "lib": ["dom", "es2017"],
     "moduleResolution": "node",
     "noImplicitAny": true,
     "sourceMap": true,
     "strictNullChecks": true,
     "jsx": "preserve",
-    "allowJs": true,
-    "outDir": "dist"
+    "outDir": "lib",
+    "declaration": true
   },
   "include": [
     "src/**/*",

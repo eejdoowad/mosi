@@ -44,13 +44,12 @@ const actions = (src) => ({
 const subscriptions = ['count'];
 
 const connections = {
-  bp: {
-    type: con.PERSISTENT,
-    init: [{ type: 'COUNT' }]
-  }
+  bp: con.PERSISTENT
 };
 
-init(actions, subscriptions, connections);
+init(actions, subscriptions, connections).then(() => {
+  net('bp').msg('COUNT');
+});
 
 /* create GUI */
 const view = document.createElement('table');

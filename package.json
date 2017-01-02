@@ -1,22 +1,27 @@
 {
   "name": "mosi",
-  "version": "0.0.3",
+  "version": "0.0.5",
   "description": "Simpler messaging for chrome extensions",
-  "main": "dist/index.js",
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
   "scripts": {
-    "build": "tsc --project tsconfig.json && eslint --fix dist/*.js",
+    "build": "tsc --project tsconfig.json && eslint --fix lib/*.js",
     "watch": "npm run build -- --watch",
-    "clean": "rimraf dist",
+    "clean": "rimraf lib",
     "lint": "tslint --project tsconfig.json --force -t stylish",
     "lint:fix": "npm run lint -- --fix",
     "test": "echo \"Error: no test specified\" && exit 1",
     "deploy": "echo \"No deploy specified\"",
-    "prepublish": ""
+    "prepublish": "npm run build"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/eejdoowad/mosi.git"
   },
+  "files": [
+    "src",
+    "lib"
+  ],
   "author": "eejdoowad <eejdoowad@gmail.com>",
   "license": "MIT",
   "bugs": {
