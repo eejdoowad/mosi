@@ -50,9 +50,4 @@ const id = node.id;
 const init = node.init;
 const net = node.net;
 
-export {
-  con,
-  id,
-  init,
-  net
-};
+export { con, id, init, net};

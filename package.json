@@ -1,6 +1,6 @@
 {
   "name": "mosi",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Simpler messaging for chrome extensions",
   "main": "dist/index.js",
   "scripts": {
@@ -10,7 +10,8 @@
     "lint": "tslint --project tsconfig.json --force -t stylish",
     "lint:fix": "npm run lint -- --fix",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "deploy": "echo \"No deploy specified\""
+    "deploy": "echo \"No deploy specified\"",
+    "prepublish": ""
   },
   "repository": {
     "type": "git",
