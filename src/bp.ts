@@ -1,4 +1,9 @@
-import Node from "./node";
+import Node, { ActionsGenerator, Communicator,  } from "./node";
+
+type Connection = {
+  port: chrome.runtime.Port,
+  subs: string[]
+};
 
 class BP extends Node {
 

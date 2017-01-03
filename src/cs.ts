@@ -1,5 +1,5 @@
 import { v4 } from "uuid";
-import Node from "./node";
+import Node, { ActionsGenerator, Communicator,  } from "./node";
 
 class CS extends Node {
 

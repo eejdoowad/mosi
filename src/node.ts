@@ -1,3 +1,12 @@
+export type Action = (arg: any) => void;
+export type ActionsGenerator = (src: string) => { [key: string]: Action };
+export type ActionHandler = (type: string) => Action;
+export type Messager = (type: string, arg: any) => void;
+export type Communicator = { msg: Messager; };
+
+type Message = { src: string, dst: string, t: string, type: string, arg?: any };
+type MessageListener = (message: Message, port: chrome.runtime.Port) => void;
+
 abstract class Node {
 
   protected _actions: ActionsGenerator;
