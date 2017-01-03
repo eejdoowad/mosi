@@ -3,7 +3,7 @@ import { init, net } from 'mosi/bp';
 let count = 0;
 
 const actions = (src) => ({
-  INCREMENT: ({ increment = 1 }) => {
+  INCREMENT: (increment = 1) => {
     count += increment;
     net('count').msg('COUNT', count);
   },

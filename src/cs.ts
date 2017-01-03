@@ -1,5 +1,5 @@
 import { v4 } from "uuid";
-import Node, { ActionsGenerator, Communicator,  } from "./node";
+import Node, { ActionsGenerator, Communicator } from "./node";
 
 class CS extends Node {
 
@@ -19,19 +19,19 @@ class CS extends Node {
         console.error("Cannot send message because no port exists");
       }
     }
-  });
+  })
 
   specialCommunicators = (src: string): { [key: string]: Communicator } => ({
     [this.id]: this.localCommunicator,
     self: this.localCommunicator
-  });
+  })
 
   disconnectListener = (port: chrome.runtime.Port): void => {
     this.port = undefined;
     console.error("The port to the background page has closed");
   }
 
-  init = (actions: ActionsGenerator, subscriptions: string[]) => {
+  init = (actions: ActionsGenerator, subscriptions: string[] = []) => {
     this._actions = this._actions;
     const connectionInfo = {
       subs: [this.id, ...subscriptions]

@@ -29,13 +29,13 @@ class BP extends Node {
   specialCommunicators = (src: string): { [key: string]: Communicator } => ({
     [this.id]: this.localCommunicator,
     self: this.localCommunicator
-  });
+  })
 
   disconnectListener = (port: chrome.runtime.Port): void => {
     this.connections = this.connections.filter((connection) => port !== connection.port);
   }
 
-  init = (actions: ActionsGenerator, subscriptions: string[]) => {
+  init = (actions: ActionsGenerator, subscriptions: string[] = []) => {
     this._actions = this._actions;
     chrome.runtime.onConnect.addListener((port) => {
       const { subs } = JSON.parse(port.name);

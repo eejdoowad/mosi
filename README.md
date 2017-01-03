@@ -18,7 +18,7 @@ import { init, net } from 'mosi/bp';
 let count = 0;
 
 const actions = (src) => ({
-  INCREMENT: ({ increment = 1 }) => {
+  INCREMENT: (increment = 1) => {
     count += increment;
     net('count').msg('COUNT', count);
   },
@@ -33,21 +33,17 @@ init(actions);
 ## content_script.js
 
 ```javascript
-import { init, net, con } from 'mosi/cs';
+import { init, net } from 'mosi/cs';
 
 const actions = (src) => ({
-  COUNT: ({ count }) => {
+  COUNT: (count) => {
     document.getElementById('count').value = count;
   }
 });
 
 const subscriptions = ['count'];
 
-const connections = {
-  bp: con.PERSISTENT
-};
-
-init(actions, subscriptions, connections).then(() => {
+init(actions, subscriptions).then(() => {
   net('bp').msg('COUNT');
 });
 

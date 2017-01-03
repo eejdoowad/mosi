@@ -15,7 +15,8 @@
     "member-ordering": [],
     "interface-name": [],
     "max-classes-per-file": [false],
-    "member-access": false
+    "member-access": false,
+    "trailing-comma": [true, {"multiline": "never", "singleline": "never"}]
   },
   "rulesDirectory": [
     /*

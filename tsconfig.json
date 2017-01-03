@@ -10,7 +10,7 @@
     "strictNullChecks": true,
     "outDir": "./lib",
     "rootDir": "./src",
-    "declaration": true
+    "declaration": false
   },
   "include": [
     "src/**/*"
