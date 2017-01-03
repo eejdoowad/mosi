@@ -8,12 +8,11 @@
     "noImplicitAny": true,
     "sourceMap": true,
     "strictNullChecks": true,
-    "jsx": "preserve",
-    "outDir": "lib",
+    "outDir": "./lib",
+    "rootDir": "./src",
     "declaration": true
   },
   "include": [
-    "src/**/*",
-    "__tests__/**/*"
+    "src/**/*"
   ]
 }

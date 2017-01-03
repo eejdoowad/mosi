@@ -1,23 +1,23 @@
 export type Action = (arg: any) => void;
 export type ActionsGenerator = (src: string) => { [key: string]: Action };
 export type ActionHandler = (type: string) => Action;
-export type Messager = (type: string, arg: any) => void;
-export type Communicator = { msg: Messager; };
+export interface Messager { (type: string, arg?: any): void; }
+export interface Communicator { msg(type: string, arg?: any): void; };
 
 type Message = { src: string, dst: string, t: string, type: string, arg?: any };
 type MessageListener = (message: Message, port: chrome.runtime.Port) => void;
 
 abstract class Node {
 
-  protected _actions: ActionsGenerator;
-  protected errorHandler = (type: string) => (arg: any) => {
+  _actions: ActionsGenerator;
+  errorHandler = (type: string) => (arg: any) => {
     console.error(`No action type ${type} sent with arg:`, arg);
   };
-  protected actionHandlerCreator: (src: string) => ActionHandler = (src) => (type) =>
+  actionHandlerCreator: (src: string) => ActionHandler = (src) => (type) =>
     this._actions(src)[type] || this.errorHandler(type);
 
-  protected abstract disconnectListener: (port: chrome.runtime.Port) => void;
-  protected messageListener = ({ src, dst, t, type, arg }: Message, port: chrome.runtime.Port) => {
+  abstract disconnectListener: (port: chrome.runtime.Port) => void;
+  messageListener = ({ src, dst, t, type, arg }: Message, port: chrome.runtime.Port) => {
     switch (t) {
       case "msg":
         this.communicator(src)(dst)[t](type, arg); break;
@@ -26,26 +26,20 @@ abstract class Node {
     }
   };
 
-  protected abstract defaultCommunicator: (src: string) => (dst: string) => Communicator;
-  protected abstract specialCommunicators: (src: string) => { [key: string]: Communicator };
-  protected localCommunicator: Communicator = {
+  abstract defaultCommunicator: (src: string) => (dst: string) => Communicator;
+  abstract specialCommunicators: (src: string) => { [key: string]: Communicator };
+  localCommunicator: Communicator = {
     msg: (type, arg) => this.actionHandlerCreator(this.id)(type)(arg)
   };
 
-  public abstract init: (actions: ActionsGenerator, subscriptions?: string[]) => void;
+  abstract init: (actions: ActionsGenerator, subscriptions?: string[]) => void;
 
-  private communicator = (src: string) => (dst: string): Communicator =>
+  communicator = (src: string) => (dst: string): Communicator =>
   this.specialCommunicators(src)[dst] || this.defaultCommunicator(src)(dst);
 
-  public net = this.communicator(this.id);
+  net = this.communicator(this.id);
 
-  public abstract id: string;
-
-  public con = {
-    DEFAULT: 0,
-    PERSISTENT: 0,
-    TEMPORARY: 1
-  };
+  abstract id: string;
 };
 
 export default Node;

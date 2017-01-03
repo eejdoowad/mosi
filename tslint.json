@@ -13,7 +13,9 @@
     "curly": true,
     "variable-name": [true, "ban-keywords", "check-format", "allow-leading-underscore"],
     "member-ordering": [],
-    "interface-name": []
+    "interface-name": [],
+    "max-classes-per-file": [false],
+    "member-access": false
   },
   "rulesDirectory": [
     /*

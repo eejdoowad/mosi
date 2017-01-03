@@ -1,4 +1,4 @@
-import Node, { ActionsGenerator, Communicator,  } from "./node";
+import Node, { ActionsGenerator, Communicator  } from "./node";
 
 type Connection = {
   port: chrome.runtime.Port,
@@ -7,9 +7,9 @@ type Connection = {
 
 class BP extends Node {
 
-  private connections: Connection[] = [];
+  connections: Connection[] = [];
 
-  protected defaultCommunicator = (src: string) => (dst: string): Communicator => {
+  defaultCommunicator = (src: string) => (dst: string): Communicator => {
     const targets = this.connections.filter(({ subs }) => subs.includes(dst));
     return {
       msg: (type, arg) => {
@@ -26,16 +26,16 @@ class BP extends Node {
     };
   }
 
-  protected specialCommunicators = (src: string): { [key: string]: Communicator } => ({
+  specialCommunicators = (src: string): { [key: string]: Communicator } => ({
     [this.id]: this.localCommunicator,
     self: this.localCommunicator
   });
 
-  protected disconnectListener = (port: chrome.runtime.Port): void => {
+  disconnectListener = (port: chrome.runtime.Port): void => {
     this.connections = this.connections.filter((connection) => port !== connection.port);
   }
 
-  public init = (actions: ActionsGenerator, subscriptions: string[]) => {
+  init = (actions: ActionsGenerator, subscriptions: string[]) => {
     this._actions = this._actions;
     chrome.runtime.onConnect.addListener((port) => {
       const { subs } = JSON.parse(port.name);
@@ -46,13 +46,12 @@ class BP extends Node {
     });
   }
 
-  public id: string = "bp";
+  id: string = "bp";
 }
 
 const node = new BP();
-const con = node.con;
 const id = node.id;
 const init = node.init;
 const net = node.net;
 
-export { con, id, init, net};
+export { id, init, net};

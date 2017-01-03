@@ -1,4 +1,4 @@
-import { init, net, con } from 'mosi/cs';
+import { init, net } from 'mosi/cs';
 
 const actions = (src) => ({
   COUNT: ({ count }) => {
@@ -8,14 +8,7 @@ const actions = (src) => ({
 
 const subscriptions = ['count'];
 
-const connections = {
-  bp: {
-    type: con.PERSISTENT,
-    init: [{ type: 'COUNT' }]
-  }
-};
-
-init(actions, subscriptions, connections);
+init(actions, subscriptions);
 
 /* create GUI */
 const view = document.createElement('table');
