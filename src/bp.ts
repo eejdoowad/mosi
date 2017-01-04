@@ -27,8 +27,8 @@ class BP extends Node {
   }
 
   specialCommunicators = (src: string): { [key: string]: Communicator } => ({
-    [this.id]: this.localCommunicator,
-    self: this.localCommunicator
+    [this.id]: this.localCommunicator(src),
+    self: this.localCommunicator(src)
   })
 
   disconnectListener = (port: chrome.runtime.Port): void => {

@@ -22,8 +22,8 @@ class CS extends Node {
   })
 
   specialCommunicators = (src: string): { [key: string]: Communicator } => ({
-    [this.id]: this.localCommunicator,
-    self: this.localCommunicator
+    [this.id]: this.localCommunicator(src),
+    self: this.localCommunicator(src)
   })
 
   disconnectListener = (port: chrome.runtime.Port): void => {
@@ -33,7 +33,7 @@ class CS extends Node {
 
   init = (actions: ActionsGenerator, subscriptions: string[] = []) => {
     this.actions = actions;
-    this.subs = [this.id, ...subscriptions];
+    this.subs = [this.id, "cs", ...subscriptions];
     const connectionInfo = { subs: this.subs };
     this.port = chrome.runtime.connect({name: JSON.stringify(connectionInfo)});
 

@@ -5,10 +5,10 @@ let count = 0;
 const actions = (src) => ({
   INCREMENT: (increment = 1) => {
     count += increment;
-    net('count').msg('COUNT', count);
+    net('count').msg('NEW_COUNT', count);
   },
   COUNT: () => {
-    net(src).msg('COUNT', count);
+    net(src).msg('NEW_COUNT', count);
   }
 });
 

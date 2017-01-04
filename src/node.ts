@@ -29,16 +29,19 @@ abstract class Node {
   }
 
   abstract defaultCommunicator: (src: string) => (dst: string) => Communicator;
-  abstract specialCommunicators: (src: string) => { [key: string]: Communicator };
-  localCommunicator: Communicator = {
-    msg: (type, arg) => this.actionHandlerCreator(this.id)(type)(arg)
-  };
+  localCommunicator: (src: string) => Communicator = (src) => ({
+    msg: (type, arg) => this.actionHandlerCreator(src)(type)(arg)
+  });
+  specialCommunicators = (src: string): { [key: string]: Communicator } => ({
+    [this.id]: this.localCommunicator(src),
+    self: this.localCommunicator(src)
+  })
 
   abstract init: (actions: ActionsGenerator, subscriptions: string[]) => void;
 
   communicator = (src: string) => (dst: string): Communicator => {
     return this.specialCommunicators(src)[dst] ||
-      (this.subs.includes(dst) && this.localCommunicator) ||
+      (this.subs.includes(dst) && this.localCommunicator(src)) ||
       this.defaultCommunicator(src)(dst);
   }
 

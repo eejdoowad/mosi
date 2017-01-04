@@ -1,14 +1,10 @@
-# This library is still in development and does not work yet
-
 # Mosi
 
-Mosi is a library designed to simplify messaging for Chrome extensions. It takes care of the low-level details needed to setup connections and send messages.
+Mosi is a library that simplifies Chrome extensions messaging. No more setting up setting up connections, sending messages and attaching listeners. With Mosi, simply declare the actions available at each endpoint and the subscriptions of each endpoint, then you can trigger those actions from any other endpoint in your extension.
 
-Mosi thinks of each endpoint at which a message can be sent or received a Node.
+# Quick Example - A Counter Extension
 
-# A quick example
-
-At each endpoint, declare the available actions and the endpoint's subscriptions.
+This is the source code for an extension that displays a count on every tab. The count starts at 0 and can be incremented by pressing a button. All tabs share the same count so that when the count is incremented from one tab, the change is synchronized to all other tabs.
 
 ## background_page.js
 
@@ -17,61 +13,68 @@ import { init, net } from 'mosi/bp';
 
 let count = 0;
 
+// declare actions available on background page
 const actions = (src) => ({
   INCREMENT: (increment = 1) => {
     count += increment;
-    net('count').msg('COUNT', count);
+    net('count').msg('NEW_COUNT', count);
   },
   COUNT: () => {
-    net(src).msg('COUNT', count);
+    net(src).msg('NEW_COUNT', count);
   }
 });
 
+// Initialize Mosi
 init(actions);
 ```
+
+The background page stores the count value. It declares two actions that other nodes can trigger: INCREMENT and COUNT.
+
+If INCREMENT is triggered, the count is incremented and a message is sent to every node that subscribes to 'count' with the updated count value.
+
+If COUNT is triggered, it sends a message to the source node that issued COUNT with the current value of count.
 
 ## content_script.js
 
 ```javascript
-import { init, net } from 'mosi/cs';
+import { init, net } from 'mosi/lib/cs';
 
+// Inject Counter GUI into topright of page
+const counter = document.createElement('div');
+counter.setAttribute('style', 'z-index: 99999; position: fixed; top: 0; right: 0;');
+counter.innerHTML = '<button id="increment">Increment</button><input id="count" disabled/>';
+document.body.appendChild(counter);
+
+// Declare actions available on content script
 const actions = (src) => ({
-  COUNT: (count) => {
+  NEW_COUNT: (count) => {
     document.getElementById('count').value = count;
   }
 });
 
 const subscriptions = ['count'];
 
-init(actions, subscriptions).then(() => {
-  net('bp').msg('COUNT');
-});
+init(actions, subscriptions);
 
-/* create GUI */
-const view = document.createElement('table');
-view.setAttribute('style',
-  `z-index: 99999;
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  max-width: 200px;
-  background-color: white;`);
-view.innerHTML = `
-  <tr style='white-space: nowrap;'>
-    <td><button id='increment'>Increment</button></td>
-    <td id='count' style='text-align: right; min-width: 120px;'></td>
-  </tr>`;
-document.body.appendChild(view);
+// Get initial count
+net('bp').msg('COUNT');
 
-/* Add Listener */
+// Add Click listener to increment count
 document.getElementById('increment').addEventListener('click', () => {
   net('bp').msg('INCREMENT');
 });
 ```
 
-# status
+# Current Network Assumptions
 
-Nothing to see yet
+* All traffic passes through the background page
+* No node except the background page can be a message intermediary.
+
+# Resolving targets
+
+* net('self') - Execute actions locally. No messages are sent.
+* net('bp') - Targets the background page. Calling net('bp') from the background page is equivalent to calling net('self').
+* net('some_subscription') - Targets all nodes that have declared the subscription, including the source node if it has declared the subscription. A single message is sent to the background page, which then sends the messages to all subscribed nodes.
 
 # API
 
