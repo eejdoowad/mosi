@@ -37,7 +37,7 @@ If COUNT is triggered, it sends a message to the source node that issued COUNT w
 ## content_script.js
 
 ```javascript
-import { init, net } from 'mosi/lib/cs';
+import { init, net } from 'mosi/cs';
 
 // Inject Counter GUI into topright of page
 const counter = document.createElement('div');
@@ -65,7 +65,46 @@ document.getElementById('increment').addEventListener('click', () => {
 });
 ```
 
-# Current Network Assumptions
+The content script injects an increment button and counter into each page. It declares a single action, NEW_COUNT, which updates the displayed count with the given count. It subscribes to 'count' to receive all actions issued via net('count'). It then gets the initial count from the background page with net('bp') and adds a listener to the increment button that issues an INCREMENT to the background page.
+
+Targeting the background page with net('bp') is possible because the background page automatically subscribes to 'bp'. Similarly, content scripts automatically subscribe to 'cs'. Although it would have been possible to use net('cs') to send count information, using an explicit 'count' subscription makes it easy to add new targets like the popup or a devtool.
+
+# API
+
+## init
+
+```
+(actions: Actions, subscriptions?: string[]) => void;
+```
+
+Initializes Mosi with the given actions and subscriptions. No messages can be sent or received until init is called. 
+
+## Actions
+
+```
+(src: string) => {
+  [key: string]: (arg: any) => void
+}
+```
+
+Action execution is triggered through Communicators.
+
+## net
+
+```
+(dst: string) => Communicator;
+```
+
+## Communicator
+
+```
+{
+  msg: (type: string, arg?: any) => void,
+  get: (type: string, arg?: any) => Promise
+}
+```
+
+# Considerations and Limitations
 
 * All traffic passes through the background page
 * No node except the background page can be a message intermediary.
@@ -75,8 +114,6 @@ document.getElementById('increment').addEventListener('click', () => {
 * net('self') - Execute actions locally. No messages are sent.
 * net('bp') - Targets the background page. Calling net('bp') from the background page is equivalent to calling net('self').
 * net('some_subscription') - Targets all nodes that have declared the subscription, including the source node if it has declared the subscription. A single message is sent to the background page, which then sends the messages to all subscribed nodes.
-
-# API
 
 ## net
 `net: (target: string) => Messager`
