@@ -36,17 +36,18 @@ class BP extends Node {
   }
 
   init = (actions: ActionsGenerator, subscriptions: string[] = []) => {
-    this._actions = this._actions;
+    this.actions = actions;
+    this.subs = [this.id, ...subscriptions];
     chrome.runtime.onConnect.addListener((port) => {
       const { subs } = JSON.parse(port.name);
       this.connections.push({ port, subs });
       port.onDisconnect.addListener(this.disconnectListener);
       port.onMessage.addListener(this.messageListener);
-
     });
   }
 
   id: string = "bp";
+  net = this.communicator(this.id);
 }
 
 const node = new BP();

@@ -6,7 +6,7 @@
     "lib": ["dom", "es2017"],
     "moduleResolution": "node",
     "noImplicitAny": true,
-    "sourceMap": true,
+    "sourceMap": false,
     "strictNullChecks": true,
     "outDir": "./lib",
     "rootDir": "./src",

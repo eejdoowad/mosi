@@ -32,10 +32,9 @@ class CS extends Node {
   }
 
   init = (actions: ActionsGenerator, subscriptions: string[] = []) => {
-    this._actions = this._actions;
-    const connectionInfo = {
-      subs: [this.id, ...subscriptions]
-    };
+    this.actions = actions;
+    this.subs = [this.id, ...subscriptions];
+    const connectionInfo = { subs: this.subs };
     this.port = chrome.runtime.connect({name: JSON.stringify(connectionInfo)});
 
     this.port.onDisconnect.addListener(this.disconnectListener);
@@ -43,6 +42,7 @@ class CS extends Node {
   }
 
   id: string = v4();
+  net = this.communicator(this.id);
 }
 
 const node = new CS();

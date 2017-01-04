@@ -1,4 +1,4 @@
-import { init, net } from 'mosi/bp';
+import { init, net } from 'mosi/lib/bp';
 
 let count = 0;
 

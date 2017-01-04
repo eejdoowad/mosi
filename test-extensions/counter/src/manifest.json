@@ -1,5 +1,5 @@
 {
-  "name": "counter",
+  "name": "mosi counter example",
   "version": "0.0",
   "description": "demeonstrates mosi",
   "background": {
@@ -11,10 +11,6 @@
       "js": ["content_script.js"]
     }
   ],
-  "browser_action": {
-    "default_title": "saka-msg",
-    "default_icon": "saka.png",
-    "default_popup": "popup.html"
-  },
-  "manifest_version": 2
+  "manifest_version": 2,
+  "web_accessible_resources": ["background_page.js.map", "content_script.js.map"]
 }

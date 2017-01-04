@@ -1,8 +1,8 @@
-import { init, net } from 'mosi/cs';
+import { init, net } from 'mosi/lib/cs';
 
 const actions = (src) => ({
-  COUNT: ({ count }) => {
-    document.getElementById('count').value = count;
+  COUNT: (count) => {
+    document.getElementById('count').innerText = count;
   }
 });
 

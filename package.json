@@ -2,6 +2,7 @@
   "name": "mosi",
   "version": "0.0.9",
   "description": "Simpler messaging for chrome extensions",
+  "jsnext:main": "lib/index.js",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "scripts": {

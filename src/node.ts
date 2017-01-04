@@ -9,20 +9,22 @@ type MessageListener = (message: Message, port: chrome.runtime.Port) => void;
 
 abstract class Node {
 
-  _actions: ActionsGenerator;
+  actions: ActionsGenerator;
+  subs: string[];
+
   errorHandler = (type: string) => (arg: any) => {
     console.error(`No action type ${type} sent with arg:`, arg);
   }
   actionHandlerCreator: (src: string) => ActionHandler = (src) => (type) =>
-    this._actions(src)[type] || this.errorHandler(type);
+    this.actions(src)[type] || this.errorHandler(type);
 
   abstract disconnectListener: (port: chrome.runtime.Port) => void;
   messageListener = ({ src, dst, t, type, arg }: Message, port: chrome.runtime.Port) => {
     switch (t) {
       case "msg":
-        this.communicator(src)(dst)[t](type, arg); break;
+        this.communicator(src)(dst)[t](type, arg); return;
       default:
-        console.error(`Invalid message class: ${t}`); break;
+        console.error(`Invalid message class: ${t}`); return;
     }
   }
 
@@ -34,10 +36,11 @@ abstract class Node {
 
   abstract init: (actions: ActionsGenerator, subscriptions: string[]) => void;
 
-  communicator = (src: string) => (dst: string): Communicator =>
-  this.specialCommunicators(src)[dst] || this.defaultCommunicator(src)(dst);
-
-  net = this.communicator(this.id);
+  communicator = (src: string) => (dst: string): Communicator => {
+    return this.specialCommunicators(src)[dst] ||
+      (this.subs.includes(dst) && this.localCommunicator) ||
+      this.defaultCommunicator(src)(dst);
+  }
 
   abstract id: string;
 };
