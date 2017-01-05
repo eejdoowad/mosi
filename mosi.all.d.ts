@@ -1,5 +1,5 @@
 interface Action {
-    (arg: any): void;
+    (arg?: any): void;
 }
 interface Communicator {
     msg(type: string, arg?: any): void;

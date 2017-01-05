@@ -1,10 +1,26 @@
 # Mosi
 
-Mosi is a library that simplifies Chrome extensions messaging. No more setting up setting up connections, sending messages and attaching listeners. With Mosi, simply declare the actions available at each endpoint and the subscriptions of each endpoint, then you can trigger those actions from any other endpoint in your extension.
+Mosi is a library that simplifies Chrome extension messaging. No more setting up connections, sending messages and attaching listeners. With Mosi, simply declare the actions available at each endpoint and the subscriptions of each endpoint, then you can trigger those actions from any other endpoint in your extension.
+
+# Warning
+
+This library is still being developed. Some features work. Others don't. This Readme documents what the library should do. It doesn't actually do it all yet.
+
+# Index
+
+* [Quick Example - A Counter Extension]()
+* [Install]()
+* [API]()
+* [Examples]()
+* [Considerations and Limitations]()
+* [Contributing]()
+
 
 # Quick Example - A Counter Extension
 
 This is the source code for an extension that displays a count on every tab. The count starts at 0 and can be incremented by pressing a button. All tabs share the same count so that when the count is incremented from one tab, the change is synchronized to all other tabs.
+
+![counter image](docs/counter.png)
 
 ## background_page.js
 
@@ -69,84 +85,128 @@ The content script injects an increment button and counter into each page. It de
 
 Targeting the background page with net('bp') is possible because the background page automatically subscribes to 'bp'. Similarly, content scripts automatically subscribe to 'cs'. Although it would have been possible to use net('cs') to send count information, using an explicit 'count' subscription makes it easy to add new targets like the popup or a devtool.
 
+# Install
+
+## Option 1. NPM
+
+
+```
+npm install --save mosi
+```
+
+This exposes the following modules:
+
+* mosi/bp - background page
+* mosi/cs - content scripts
+* mosi/dt - devtools
+* mosi/ep - extension pages, e.g. settings or custom pages
+
+You can then import from the appropriate module.
+
+```javascript
+import { init, net } from 'mosi/dt';
+init(actions, subscriptions);
+net('bp').msg('HELLO');
+```
+
+Your extension will not work if you import from the wrong module, e.g. import mosi/bp from a content script.
+
+## Option 2. Pre-compiled .js files
+
+Download the pre-compiled files from this repo's dist directory. Make sure to attach the correct bundle in your manifest.json.
+
+* mosi.bp.js - background page
+* mosi.cs.js - content scripts
+* mosi.dt.js - devtools
+* mosi.ep.js - extension pages, e.g. settings or custom pages
+
+You can then make calls through the mosi object.
+
+```javascript
+mosi.init(actions, subscriptions);
+mosi.net('bp').msg('HELLO');
+```
+
+Your extension will not work if you bundle the wrong .js file in your manifest.json, e.g. include mosi.bp.js instead of mosi.cs.js in your content scripts.
+
 # API
+
+Mosi exports two functions: `init` and `net`.
 
 ## init
 
 ```
-(actions: Actions, subscriptions?: string[]) => void;
+(actions: Actions, subscriptions?: Subscriptions) => void;
 ```
 
-Initializes Mosi with the given actions and subscriptions. No messages can be sent or received until init is called. 
+* `actions` - the actions the node exposes
+* `subscriptions` - a node's subscriptions
 
-## Actions
+Initializes Mosi with the given actions and subscriptions. No messages can be sent or received until `init` is called. After initialization, a node will receive any message targeting any of its subscriptions. This message will be handled by the corresponding action. If a matching action doesnt exist, the node logs an error to the console.
+
+### Actions
 
 ```
 (src: string) => {
-  [key: string]: (arg: any) => void
+  [key: string]: (arg?: any) => void
 }
 ```
+
+Actions declares the actions to be executed when a message is received. It is structured as a function that accepts a src string, where src refers to the node that issued the action, and returns an object whose members are functions that can be called when messages are received.
+
+In the counter example, `net('bp').msg('COUNT')` is used to fetch the starting value of count from the background page. The background page handles the request using the action `COUNT: () => { net(src).msg('NEW_COUNT', count); }`, which is able to send a response back to the correct content script using the src string. 
+
+### Subscriptions
+
+```
+string[]
+```
+
+A node's subscriptions declare that it should get a message whenever a message is sent to one if its subscriptions.
+
+Note that every node is initialized with a default subscription corresponding to its class, e.g. background page is initialized with 'bp' and content scripts are initialized with 'cs'.
+
+* `'bp'` - background page
+* `'cs'` - content scripts
+* `'ep'` - extension page
+* `'dt'` - devtool
+* `'popup'` - popup
+* ... suggest other targets in an issue or submit a pull request
 
 Action execution is triggered through Communicators.
 
 ## net
 
 ```
-(dst: string) => Communicator;
+(dst: string) => Communicator
+(dst: Object) => Communicator // in progress
 ```
 
-## Communicator
+The dst argument can be one of
+* `src` - available only with the action's declaration, the node that triggered the action
+* `'self'` - the local node, use this to execute actions locally
+* A subscription
+
+The net function's only argument is the destination. The destination can be either a subscription string or a Target Object.
+
+net('some_subscription') - Targets all nodes that have declared the subscription, including the source node if it has declared the subscription. A single message is sent to the background page, which then sends the messages to all subscribed nodes.
+
+The net function's only argument is the target. The target can a built-in target or a subscription group. The built in target groups are:
+
+### Communicator
 
 ```
 {
   msg: (type: string, arg?: any) => void,
-  get: (type: string, arg?: any) => Promise
+  get: (type: string, arg?: any) => Promise<any[]> // in progress
 }
 ```
 
-# Considerations and Limitations
-
-* All traffic passes through the background page
-* No node except the background page can be a message intermediary.
-
-# Resolving targets
-
-* net('self') - Execute actions locally. No messages are sent.
-* net('bp') - Targets the background page. Calling net('bp') from the background page is equivalent to calling net('self').
-* net('some_subscription') - Targets all nodes that have declared the subscription, including the source node if it has declared the subscription. A single message is sent to the background page, which then sends the messages to all subscribed nodes.
-
-## net
-`net: (target: string) => Messager`
-
-The net function's only argument is the target. The target can a built-in target or a subscription group. The built in target groups are:
-
-* self - the local node, use this to trigger a local action
-* src - the node that
-* cs - all content scripts
-* bp - the background page
-* popup - the popup
-* ... why don't you suggest more built-in targets?
-
-Subscription group membership is specified by each node on initialization.
-
-The net function returns a Messager Object, which can be used to communicate with all nodes belonging to the specified target.
-
-## Messager
-
-The Messager is an object with the following structure:
-
-```typescript
-Messager: {
-  msg: (action: string, argument: any) => void,
-  get: (action: string, argument: any) => any[]
-}
-```
-
-## msg
+#### msg
 
 msg sends a message to the target group. The user supplies an action and an optional argument to send to the target group. The receiving nodes of the target group must contain handlers for the specified action. Under the hood, msg works by sending a single message to every node of the target group.
 
-## get
+#### get
 
 get is like msg, except it returns a value. Specifically, it returns a Promise on the value returned by the specified action. Because a target comprises multiple nodes, the promise value is acually a list of values, one for each target node.
 
@@ -154,48 +214,27 @@ get is like msg, except it returns a value. Specifically, it returns a Promise o
 const [count] = await net("bp").get("COUNT");
 ```
 
-# Error Handling
+# Examples
 
-Users are likely to make two classes of errors:
-1. Issuing an action to a node with no handler for that type of action.
+* [Counter]()
+* and more...
 
+# Considerations and Limitations
 
-2. Issuing an action to a non-existant subscription group.
+1. Mosi emphasizes ease-of-use over performance. It's magical API requires serious work under the hood. See benchmark [fill in].
+2. Mosi requires a persistent background page. An non-persistent background page, aka an event page, won't work.
+3. Mosi uses a star architecture in which all messages are sent to the background page, which then forwards the message to all subscribed nodes.
+4. Mosi uses es6 features directly with no precompilation because it is designed for Chrome Extensions, and Chrome supports es6.
+5. Mosi is awesome.
 
-The first case is a real error, which the receiving node handles by logging to the console that no action handler exists for the given type. The second case may be an error, but there is no way to distinguish an erroneous subscription targer from a subscription target with no currently existing members. The result is no messages are sent and executions continues as if msg were never called.
+Note that Mosi has not been optimized for performance and there is significant leeway to improve it. 
 
-# Behind the scenes
+# Contributing
 
-Mosi works by setting up a message listener that 
+All contributions welcome.
 
-# actions
+If you encounter a bug, create an issue. If you're amazing, fix it and submit a pull request.
 
-* msg and no return
+If you have any suggestions, create an issue for discussion.
 
-No message is sent back.
-
-* msg and return
-
-The return value is sent back and handled by a local action with the same name as the sending action. If there is no local action with that name, this is an error.
-
-* get and no return
-
-
-
-* get and return
-
-
-
-# Developer Commands
-
-```json
-  "scripts": {
-    "build": "tsc --project tsconfig.json",
-    "watch": "npm run build -- --watch",
-    "clean": "rimraf dist",
-    "lint": "tslint --project tsconfig.json --force -t stylish",
-    "lint:fix": "npm run lint -- --fix",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "deploy": "echo \"No deploy specified\""
-  }
-```
+Mosi's API is minimal and simple, but may be a little inflexible given a node's actions and subscriptions are declared statically. If you can provide a use case for dynamic actions and subscriptions and an elegant API, please create an issue.
