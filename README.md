@@ -1,6 +1,6 @@
 # Mosi
 
-Mosi is a library that simplifies Chrome extension messaging. No more setting up connections, sending messages and attaching listeners. With Mosi, simply declare the actions available at each endpoint and the subscriptions of each endpoint, then you can trigger those actions from any other endpoint in your extension.
+Mosi is a library that simplifies Chrome extension messaging. No more setting up connections, sending messages and attaching listeners. Mosi makes communication organized and intuitive through a declarative, event-driven, pub/sub API.
 
 # Warning
 
@@ -25,23 +25,21 @@ This is the source code for an extension that displays a count on every tab. The
 ## background_page.js
 
 ```javascript
-import { init, net } from 'mosi/bp';
+import { init, net, src } from 'mosi/bp';
 
 let count = 0;
 
-// declare actions available on background page
-const actions = (src) => ({
-  INCREMENT: (increment = 1) => {
-    count += increment;
-    net('count').msg('NEW_COUNT', count);
-  },
-  COUNT: () => {
-    net(src).msg('NEW_COUNT', count);
+init({
+  actions: {
+    INCREMENT: (increment = 1) => {
+      count += increment;
+      net('count').msg('NEW_COUNT', count);
+    },
+    COUNT: () => {
+      net(src).msg('NEW_COUNT', count);
+    }
   }
 });
-
-// Initialize Mosi
-init(actions);
 ```
 
 The background page stores the count value. It declares two actions that other nodes can trigger: INCREMENT and COUNT.
@@ -61,19 +59,15 @@ counter.setAttribute('style', 'z-index: 99999; position: fixed; top: 0; right: 0
 counter.innerHTML = '<button id="increment">Increment</button><input id="count" disabled/>';
 document.body.appendChild(counter);
 
-// Declare actions available on content script
-const actions = (src) => ({
-  NEW_COUNT: (count) => {
-    document.getElementById('count').value = count;
+init({
+  subscriptions: ['count']
+  onConnect: [{ action: 'COUNT' }]
+  actions: {
+    NEW_COUNT: (count) => {
+      document.getElementById('count').value = count;
+    }
   }
 });
-
-const subscriptions = ['count'];
-
-init(actions, subscriptions);
-
-// Get initial count
-net('bp').msg('COUNT');
 
 // Add Click listener to increment count
 document.getElementById('increment').addEventListener('click', () => {
@@ -142,7 +136,7 @@ Mosi exports two functions: `init` and `net`.
 * `actions` - the actions the node exposes
 * `subscriptions` - a node's subscriptions
 
-Initializes Mosi with the given actions and subscriptions. No messages can be sent or received until `init` is called. After initialization, a node will receive any message targeting any of its subscriptions. This message will be handled by the corresponding action. If a matching action doesnt exist, the node logs an error to the console.
+Initializes Mosi with the given actions and subscriptions. No messages can be sent or received until `init` is called. After initialization, a node will receive any message targeting any of its subscriptions. This message will be handled by the appropriate action. If a matching action does not exist, the node logs an error to the console.
 
 ### Actions
 
@@ -164,8 +158,9 @@ string[]
 
 A node's subscriptions declare that it should get a message whenever a message is sent to one if its subscriptions.
 
-Note that every node is initialized with a default subscription corresponding to its class, e.g. background page is initialized with 'bp' and content scripts are initialized with 'cs'.
+Note that every node is initialized with a default subscription corresponding to its class, e.g. the background page is initialized with subscription 'bp' and content scripts are initialized with subscription 'cs'. Manually subscribing to any default subscription is an  error.
 
+Default subscriptions:
 * `'bp'` - background page
 * `'cs'` - content scripts
 * `'ep'` - extension page
@@ -173,14 +168,14 @@ Note that every node is initialized with a default subscription corresponding to
 * `'popup'` - popup
 * ... suggest other targets in an issue or submit a pull request
 
-Action execution is triggered through Communicators.
-
 ## net
 
 ```
 (dst: string) => Communicator
 (dst: Object) => Communicator // in progress
 ```
+
+*  dst - the destination to which any 
 
 The dst argument can be one of
 * `src` - available only with the action's declaration, the node that triggered the action

@@ -1,6 +1,8 @@
 import { v4 } from "uuid";
 import Node, { ActionsGenerator, Communicator } from "./node";
 
+let src: string | undefined = undefined;
+
 class CS extends Node {
 
   port: chrome.runtime.Port | undefined;
@@ -44,4 +46,4 @@ const node = new CS();
 const init = node.init;
 const net = node.net;
 
-export { init, net};
+export { init, net, src};
