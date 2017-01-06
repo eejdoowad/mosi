@@ -1,51 +1,81 @@
 export type Action = (arg: any) => void;
-export type ActionsGenerator = (src: string) => { [key: string]: Action };
-export type ActionHandler = (type: string) => Action;
+// export type ActionsGenerator = (src: string) => { [key: string]: Action };
+// export type ActionHandler = (type: string) => Action;
 export interface Messager { (type: string, arg?: any): void; }
 export interface Communicator { msg(type: string, arg?: any): void; }
 
-type Message = { src: string, dst: string, t: string, type: string, arg?: any };
+type Message = { _src: string, _dst: string, _t: string, type: string, arg?: any };
 type MessageListener = (message: Message, port: chrome.runtime.Port) => void;
+
+
+export type ActionDetails = { action: string; arg?: any; dst?: string; };
+export interface Config {
+  subscriptions: string[];
+  onConnect?: ActionDetails[];
+  onDisconnect?: ActionDetails[];
+  actions: { [key: string]: Action };
+}
+
+// this should really be part of the class... but is global so that it can be exported under the simple name src
+// doesn't really matter since class is singleton
+export let src: string = 'uninitialized';
+export const setSrc = (newSrc: string) => { src = newSrc; }
+
 
 abstract class Node {
 
-  actions: ActionsGenerator;
+  id: string;
+  actions: { [key: string]: Action };
   subs: string[];
+  net: Communicator;
+
+  abstract initializeId(): void;
+  abstract init: (config: Config) => void;
+  abstract disconnectListener: (port: chrome.runtime.Port) => void;
+  abstract defaultCommunicator: (dst: string) => Communicator;
+
+  sharedInit = ({ subscriptions, onConnect, actions }: Config): void => {
+    this.initializeId();
+    this.net = this.communicator(this.id);
+    this.subs = [this.id, ...subscriptions];
+    this.actions = actions;
+    if (onConnect) {
+      onConnect.forEach((actionDetails) => {
+        const { action = 'error', arg, dst = 'bp' } = actionDetails;
+        src = this.id;
+        this.communicator(this.id).msg(action, arg);
+      });
+    }
+  }
+
+  localCommunicator: Communicator = {
+    msg: (type, arg) => this.actionHandler(type)(arg)
+  };
+  specialCommunicators: { [key: string]: Communicator } = {
+    [this.id]: this.localCommunicator,
+    self: this.localCommunicator
+  };
+  communicator = (dst: string): Communicator => {
+    return this.specialCommunicators[dst] ||
+      (this.subs.includes(dst) && this.localCommunicator) ||
+      this.defaultCommunicator(dst);
+  }
 
   errorHandler = (type: string) => (arg: any) => {
     console.error(`No action type ${type} sent with arg:`, arg);
   }
-  actionHandlerCreator: (src: string) => ActionHandler = (src) => (type) =>
-    this.actions(src)[type] || this.errorHandler(type);
+  actionHandler = (type: string): Action =>
+    this.actions[type] || this.errorHandler(type);
 
-  abstract disconnectListener: (port: chrome.runtime.Port) => void;
-  messageListener = ({ src, dst, t, type, arg }: Message, port: chrome.runtime.Port) => {
-    switch (t) {
-      case "msg":
-        this.communicator(src)(dst)[t](type, arg); return;
+  messageListener = ({ _src, _dst, _t, type, arg }: Message, port: chrome.runtime.Port) => {
+    src = _src;
+    switch (_t) {
+      case 'msg':
+        this.communicator(_dst)[_t](type, arg); return;
       default:
-        console.error(`Invalid message class: ${t}`); return;
+        console.error(`Invalid message class: ${_t}`); return;
     }
   }
-
-  abstract defaultCommunicator: (src: string) => (dst: string) => Communicator;
-  localCommunicator: (src: string) => Communicator = (src) => ({
-    msg: (type, arg) => this.actionHandlerCreator(src)(type)(arg)
-  });
-  specialCommunicators = (src: string): { [key: string]: Communicator } => ({
-    [this.id]: this.localCommunicator(src),
-    self: this.localCommunicator(src)
-  })
-
-  abstract init: (actions: ActionsGenerator, subscriptions: string[]) => void;
-
-  communicator = (src: string) => (dst: string): Communicator => {
-    return this.specialCommunicators(src)[dst] ||
-      (this.subs.includes(dst) && this.localCommunicator(src)) ||
-      this.defaultCommunicator(src)(dst);
-  }
-
-  abstract id: string;
 };
 
 export default Node;

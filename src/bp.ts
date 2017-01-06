@@ -1,23 +1,37 @@
-import Node, { ActionsGenerator, Communicator  } from "./node";
+import Node, { ActionDetails, Communicator, Config, src  } from './node';
 
 type Connection = {
   port: chrome.runtime.Port,
-  subs: string[]
-};
+  subs: string[],
+  onDisconnect?: ActionDetails};
 
 class BP extends Node {
 
   connections: Connection[] = [];
 
-  defaultCommunicator = (src: string) => (dst: string): Communicator => {
+  init = ({ subscriptions = [], onConnect, onDisconnect, actions }: Config) => {
+    this.sharedInit({ subscriptions, onConnect, actions });
+    chrome.runtime.onConnect.addListener((port) => {
+      const { subs } = JSON.parse(port.name);
+      this.connections.push({ port, subs, onDisconnect });
+      port.onDisconnect.addListener(this.disconnectListener);
+      port.onMessage.addListener(this.messageListener);
+    });
+  }
+
+  initializeId(): void {
+    this.id = 'bp';
+  }
+
+  defaultCommunicator = (dst: string): Communicator => {
     const targets = this.connections.filter(({ subs }) => subs.includes(dst));
     return {
       msg: (type, arg) => {
         targets.forEach(({port}) => {
           port.postMessage({
-            src,
-            dst,
-            t: "msg",
+            _src: src,
+            _dst: dst,
+            _t: 'msg',
             type,
             arg
           });
@@ -29,20 +43,6 @@ class BP extends Node {
   disconnectListener = (port: chrome.runtime.Port): void => {
     this.connections = this.connections.filter((connection) => port !== connection.port);
   }
-
-  init = (actions: ActionsGenerator, subscriptions: string[] = []) => {
-    this.actions = actions;
-    this.subs = [this.id, ...subscriptions];
-    chrome.runtime.onConnect.addListener((port) => {
-      const { subs } = JSON.parse(port.name);
-      this.connections.push({ port, subs });
-      port.onDisconnect.addListener(this.disconnectListener);
-      port.onMessage.addListener(this.messageListener);
-    });
-  }
-
-  id: string = "bp";
-  net = this.communicator(this.id);
 }
 
 const node = new BP();

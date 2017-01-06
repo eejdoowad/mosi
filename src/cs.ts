@@ -1,45 +1,44 @@
-import { v4 } from "uuid";
-import Node, { ActionsGenerator, Communicator } from "./node";
-
-let src: string | undefined = undefined;
+import { v4 } from 'uuid';
+import Node, { Communicator, setSrc, src } from './node';
 
 class CS extends Node {
 
   port: chrome.runtime.Port | undefined;
 
-  defaultCommunicator = (src: string) => (dst: string): Communicator => ({
+  initializeId(): void {
+    this.id = v4();
+  }
+
+  defaultCommunicator = (dst: string): Communicator => ({
     msg: (type, arg) => {
       if (this.port) {
         this.port.postMessage({
-          src,
-          dst,
-          t: "msg",
+          _src: src,
+          _dst: dst,
+          _t: 'msg',
           type,
           arg
         });
       } else {
-        console.error("Cannot send message because no port exists");
+        console.error('Cannot send message because no port exists');
       }
     }
   })
 
   disconnectListener = (port: chrome.runtime.Port): void => {
     this.port = undefined;
-    console.error("The port to the background page has closed");
+    console.error('The port to the background page has closed');
   }
 
-  init = (actions: ActionsGenerator, subscriptions: string[] = []) => {
+  init = (config) => {
     this.actions = actions;
-    this.subs = [this.id, "cs", ...subscriptions];
+    this.subs = [this.id, 'cs', ...subscriptions];
     const connectionInfo = { subs: this.subs };
     this.port = chrome.runtime.connect({name: JSON.stringify(connectionInfo)});
 
     this.port.onDisconnect.addListener(this.disconnectListener);
     this.port.onMessage.addListener(this.messageListener);
   }
-
-  id: string = v4();
-  net = this.communicator(this.id);
 }
 
 const node = new CS();
