@@ -1,11 +1,11 @@
 import{ ActionDetails, Communicator, Config, Node  } from './node';
 
 interface Connection {
-  id: string,
-  port: chrome.runtime.Port,
-  subs: string[],
-  onDisconnect: ActionDetails[]
-};
+  id: string;
+  port: chrome.runtime.Port;
+  subs: string[];
+  onDisconnect: ActionDetails[];
+}
 
 class BP extends Node {
 

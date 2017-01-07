@@ -5,21 +5,24 @@ export interface Messager {
 export interface Communicator {
   msg(type: string, arg?: any): void;
 }
-
-type Message = { src: string, dst: string, t: string, type: string, arg?: any };
-type MessageListener = (message: Message, port: chrome.runtime.Port) => void;
-
 export interface ActionDetails {
   action: string;
   arg?: any;
-  dst?: string; 
-};
+  dst?: string;
+}
 export interface Config {
   subscriptions?: string[];
   onConnect?: ActionDetails[];
   onDisconnect?: ActionDetails[];
   actions: { [key: string]: Action };
 }
+export interface Message {
+  src: string;
+  dst: string;
+  t: string;
+  type: string;
+  arg?: any; };
+export interface MessageListener { (message: Message, port: chrome.runtime.Port): void; }
 
 export abstract class Node {
 
@@ -62,4 +65,5 @@ export abstract class Node {
         console.error(`ERROR: Invalid message class: ${t}`); return;
     }
   }
-};
+
+}
