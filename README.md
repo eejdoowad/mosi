@@ -36,7 +36,7 @@ init({
       net('count').msg('NEW_COUNT', count);
     },
     COUNT: () => {
-      net(src).msg('NEW_COUNT', count);
+      net(src()).msg('NEW_COUNT', count);
     }
   }
 });
@@ -75,7 +75,7 @@ document.getElementById('increment').addEventListener('click', () => {
 });
 ```
 
-The content script injects an increment button and counter into each page. It declares a single action, NEW_COUNT, which updates the displayed count with the given count. It subscribes to 'count' to receive all actions issued via net('count'). It then gets the initial count from the background page with net('bp') and adds a listener to the increment button that issues an INCREMENT to the background page.
+The content script injects an increment button and counter into each page. It subscribes to 'count' to receive all actions issued via net('count'). It specifies that the background page should execute the COUNT action on connection. It declares a single action, NEW_COUNT, which updates the displayed count with the given count.  It then adds a listener to the increment button that sends an INCREMENT message to the background page.
 
 Targeting the background page with net('bp') is possible because the background page automatically subscribes to 'bp'. Similarly, content scripts automatically subscribe to 'cs'. Although it would have been possible to use net('cs') to send count information, using an explicit 'count' subscription makes it easy to add new targets like the popup or a devtool.
 
@@ -99,7 +99,7 @@ You can then import from the appropriate module.
 
 ```javascript
 import { init, net } from 'mosi/dt';
-init(actions, subscriptions);
+init({ actions: { NADA: () => {} } });
 net('bp').msg('HELLO');
 ```
 
@@ -125,12 +125,17 @@ Your extension will not work if you bundle the wrong .js file in your manifest.j
 
 # API
 
-Mosi exports two functions: `init` and `net`.
+Mosi exports three functions: `init`, `net` and `src`. This documentation needs updating.
 
 ## init
 
 ```
-(actions: Actions, subscriptions?: Subscriptions) => void;
+(config: {
+  subscriptions?: string[];
+  onConnect?: ActionDetails[];
+  onDisconnect?: ActionDetails[];
+  actions: { [key: string]: Action };
+}) => void;
 ```
 
 * `actions` - the actions the node exposes
