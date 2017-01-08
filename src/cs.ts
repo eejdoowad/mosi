@@ -7,7 +7,7 @@ class CS extends Node {
 
    init = ({ subscriptions = [], onConnect = [], onDisconnect = [], actions }: Config) => {
     this.id = v4();
-    this.subscriptions = ['cs', this.id, ...subscriptions];
+    this.subscriptions = ['self', 'cs', this.id, ...subscriptions];
     this.actions = actions;
     const connectionInfo = { id: this.id, subs: this.subscriptions, onConnect, onDisconnect };
     this.port = chrome.runtime.connect({name: JSON.stringify(connectionInfo)});
@@ -15,7 +15,7 @@ class CS extends Node {
     this.port.onMessage.addListener(this.messageListener);
   }
 
-  defaultCommunicator = (dst: string): Communicator => ({
+  net = (dst: string): Communicator => ({
     msg: (type, arg) => {
       this.port.postMessage({
         src: this.src,

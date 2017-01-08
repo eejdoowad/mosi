@@ -12,7 +12,7 @@
      */
     "object-literal-sort-keys": false,
     "quotemark": [true, "single", "avoid-escape"],
-    "curly": true,
+    "curly": false,
     "variable-name": [true, "ban-keywords", "check-format", "allow-leading-underscore"],
     "member-ordering": [],
     "interface-name": [],

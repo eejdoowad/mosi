@@ -123,6 +123,28 @@ mosi.net('bp').msg('HELLO');
 
 Your extension will not work if you bundle the wrong .js file in your manifest.json, e.g. include mosi.bp.js instead of mosi.cs.js in your content scripts.
 
+# Targets
+
+Example targets
+* src
+* self
+* - currentTab
+* - otherTabs
+* subscriptions
+* tab[#]
+* tab[#].frame[#]
+* tab[#].frames[#,#,#]
+* tab[#].topFrame
+* tab[#].childFrames
+* subcription.topFrame
+* *.sub1;sub2.topFrame
+* sub1;bp;dt
+
+# predicates can be attached to subscriptions
+* meow - always subscribe to meow
+* meow.topFrame - only subscribe to meow if this is the top frame
+* meow.childFrames - only subscribe to meow if this is not the top frame
+
 # API
 
 Mosi exports three functions: `init`, `net` and `src`. This documentation needs updating.

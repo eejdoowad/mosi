@@ -32,27 +32,14 @@ export abstract class Node {
   subscriptions: string[];
 
   abstract init: (config: Config) => void;
+  abstract net: (dst: string) => Communicator;
   abstract disconnectListener: (port: chrome.runtime.Port) => void;
-  abstract defaultCommunicator: (dst: string) => Communicator;
 
-  localCommunicator: Communicator = {
-    msg: (type, arg) => this.actionHandler(type)(arg)
-  };
-  specialCommunicators: { [key: string]: Communicator } = {
-    [this.id]: this.localCommunicator,
-    self: this.localCommunicator
-  };
-  net = (dst: string): Communicator => (
-    this.specialCommunicators[dst] ||
-    this.subscriptions.includes(dst) && this.localCommunicator ||
-    this.defaultCommunicator(dst)
-  );
-
+  actionHandler = (type: string): Action =>
+    this.actions[type] || this.errorHandler(type);
   errorHandler = (type: string) => (arg: any) => {
     console.error(`ERROR: No action type ${type}`);
   }
-  actionHandler = (type: string): Action =>
-    this.actions[type] || this.errorHandler(type);
 
   messageListener = ({ src, dst, t, type, arg }: Message, port: chrome.runtime.Port) => {
     this.src = src;
