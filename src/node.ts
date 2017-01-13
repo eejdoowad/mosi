@@ -1,9 +1,7 @@
-export type Action = (arg: any) => void;
-export interface Messager {
-  (type: string, arg?: any): void;
-}
+export type Action = (arg: any, src: number) => void;
+export type Destination = string | number;
 export interface Communicator {
-  msg(type: string, arg?: any): void;
+  msg(action: string, arg?: any): void;
 }
 export interface ActionDetails {
   action: string;
@@ -17,40 +15,33 @@ export interface Config {
   actions: { [key: string]: Action };
 }
 export interface Message {
-  src: string;
-  dst: string;
+  src?: number;
+  dst: Destination;
   t: string;
-  type: string;
+  action: string;
   arg?: any; };
 export interface MessageListener { (message: Message, port: chrome.runtime.Port): void; }
 
+export interface Transaction {
+  src: string;
+  id: number;
+}
+
 export abstract class Node {
 
-  id: string;
-  src: string;
   actions: { [key: string]: Action };
   subscriptions: string[];
+  nextTransactionId = 0;
+  transactions: Transaction[] = [];
 
   abstract init: (config: Config) => void;
-  abstract net: (dst: string) => Communicator;
+  abstract msg: (dst: Destination, action: string, arg: any, src: string) => void;
   abstract disconnectListener: (port: chrome.runtime.Port) => void;
+  abstract messageListener: ({ src, dst, t, action, arg }: Message, port: chrome.runtime.Port) => void;
 
-  actionHandler = (type: string): Action =>
-    this.actions[type] || this.errorHandler(type);
-  errorHandler = (type: string) => (arg: any) => {
-    console.error(`ERROR: No action type ${type}`);
+  actionHandler = (action: string): Action =>
+    this.actions[action] || this.errorHandler(action);
+  errorHandler = (action: string) => (arg: any) => {
+    console.error(`ERROR: No action type ${action}`);
   }
-
-  messageListener = ({ src, dst, t, type, arg }: Message, port: chrome.runtime.Port) => {
-    this.src = src;
-    switch (t) {
-      case 'msg':
-        this.net(dst)[t](type, arg); return;
-      case 'get':
-        console.error('ERROR: Not yet implemented'); return;
-      default:
-        console.error(`ERROR: Invalid message class: ${t}`); return;
-    }
-  }
-
 }

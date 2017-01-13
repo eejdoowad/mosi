@@ -1,23 +1,16 @@
-import { ActionDetails, Communicator, Config, Destination, Message, Node  } from './node';
+import { ActionDetails, Communicator, Config, Node  } from './node';
 
 interface Connection {
   port: chrome.runtime.Port;
-  id: number;
   subs: string[];
   onDisconnect: ActionDetails[];
-  tabId?: number;
-  frameId?: number;
+  tabId: number;
+  frameId: number;
 }
 
 class BP extends Node {
 
   connections: Connection[] = [];
-
-  /**
-   * Generates incrementing number Ids starting with 2 because
-   * 0 is reserved for self, 1 is reserved for the bp
-   */
-  nextId = 2;
 
   /**
    * The background page doubles as the Communication Administrator. It must:
@@ -32,58 +25,47 @@ class BP extends Node {
     this.subscriptions = subscriptions;
     this.actions = actions;
     chrome.runtime.onConnect.addListener((port) => {
-      const id = this.nextId++;
       const { subs, onConnect: onC, onDisconnect: onD } = JSON.parse(port.name);
-
-      /** browser action, page actions, devtools won't have tabId or frameId */
-      const sender = <chrome.runtime.MessageSender> port.sender;
-      let tabId;
-      if (sender.tab) tabId = sender.tab.id;
-      const frameId = sender.frameId;
-
+      const tabId = <number> (<chrome.tabs.Tab> (<chrome.runtime.MessageSender> port.sender).tab).id;
+      const frameId = <number> (<chrome.runtime.MessageSender> port.sender).frameId;
       /** TODO: determine cost of unshift vs push */
-      this.connections.push({ port, id, subs, onDisconnect: onD, tabId, frameId });
+      this.connections.push({ port, subs, onDisconnect: onD, tabId, frameId });
       port.onDisconnect.addListener(this.disconnectListener);
       port.onMessage.addListener(this.messageListener);
-      this.executeOnConnectionActions(id, onC);
+      this.executeOnConnectionActions(`tab[${tabId}].frame[${frameId}]`, onC);
     });
-    this.executeOnConnectionActions(0, onConnect);
+    this.executeOnConnectionActions('self', onConnect);
   }
 
-  executeOnConnectionActions = (src: number, actionDetails: ActionDetails[]) => {
-    actionDetails.forEach(({ action, arg, dst = 0 }) => {
-      this._msg(src, dst, action, arg);
+  executeOnConnectionActions = (src: string, actionDetails: ActionDetails[]) => {
+    this.src = src;
+    actionDetails.forEach(({ action, arg, dst = 'self' }) => {
+      this.net(dst).msg(action, arg);
     });
   }
 
   /** 
    * If the destination includes the current node, execute the action locally.
    * Also send an action message to every other destination node.
-   * TODO: CLEAN THIS UP
    */
-  _msg = (src: number, dst: Destination, action: string, arg: any): void => {
-    let targetSelf = false;
-    let targets: Connection[] = [];
-    if (typeof dst === 'number') {
-      targetSelf = dst === 0;
-      targets = this.connections.filter((c) => c.id === dst);
-    } else {
-      targetSelf = this.subscriptions.includes(dst);
-      targets = this.getTargets(dst);
-    }
-    if (targetSelf) this.actionHandler(action)(arg, src);
-    targets.forEach(({port}) => {
-      port.postMessage({
-        src,
-        dst,
-        t: 'msg',
-        action,
-        arg
-      });
-    });
+  net = (dst: string): Communicator => {
+    const targetSelf = dst === 'self' || this.subscriptions.includes(dst);
+    const targets = this.getTargets(dst);
+    return {
+      msg: (type, arg) => {
+        if (targetSelf) this.actionHandler(type)(arg);
+        targets.forEach(({port}) => {
+          port.postMessage({
+            src: this.src,
+            dst,
+            t: 'msg',
+            type,
+            arg
+          });
+        });
+      }
+    };
   }
-
-  msg = this._msg.bind(undefined, 0);
 
 /** 
  * A destination is composed of multiple subdestinations separated by semicolons.
@@ -97,8 +79,11 @@ class BP extends Node {
   getTargets = (dst: string): Connection[] => {
     /** Returns true if the given connection is part of the destination, else false */
     const predicate = (connection: Connection): boolean => {
-      for (const subDst of dst.split(';')) {
+      dst.split(';').forEach((subDst) => {
         const allConditionsMet = subDst.split('.').map<boolean>((condition) => {
+          if (condition === 'self') {
+            return false;
+          }
           if (connection.subs.includes(condition)) {
             return true;
           }
@@ -119,7 +104,7 @@ class BP extends Node {
           return false;
         }).every((conditionMet) => conditionMet);
         if (allConditionsMet) return true;
-      }
+      });
       return false;
     };
     return this.connections.filter(predicate);
@@ -133,26 +118,12 @@ class BP extends Node {
     const i = this.connections.findIndex((connection) => port === connection.port);
     const onDisconnect = this.connections[i].onDisconnect;
     this.connections.splice(i, 1);
-    this.executeOnConnectionActions(0, onDisconnect);
-  }
-
-  messageListener = ({ src, dst, t, action, arg }: Message, port: chrome.runtime.Port) => {
-    if (src === undefined) {
-      src = this.connections.filter((c) => c.port === port)[0].id;
-    }
-    switch (t) {
-      case 'msg':
-        this._msg(src, dst, action, arg); return;
-      case 'get':
-        console.error('ERROR: Not yet implemented'); return;
-      default:
-        console.error(`ERROR: Invalid message class: ${t}`); return;
-    }
+    this.executeOnConnectionActions('self', onDisconnect);
   }
 }
 
 const node = new BP();
 const init = node.init;
-const msg = node.msg;
-// const get = node.get;
-export { init, msg};
+const net = node.net;
+const src = () => node.src;
+export { init, net, src};

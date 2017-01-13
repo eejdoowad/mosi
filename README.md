@@ -133,11 +133,10 @@ Example targets
 * subscriptions
 * tab[#]
 * tab[#].frame[#]
-* tab[#].frames[#,#,#]
 * tab[#].topFrame
 * tab[#].childFrames
 * subcription.topFrame
-* *.sub1;sub2.topFrame
+* sub1;sub2.topFrame
 * sub1;bp;dt
 
 # predicates can be attached to subscriptions
