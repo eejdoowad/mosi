@@ -1,6 +1,6 @@
 {
-  "name": "counter",
-  "description": "simple counter example for mosi",
+  "name": "dynamic-links",
+  "description": "like links example, only links update dynamically as page changes",
   "scripts": {
     "build": "rimraf dist && webpack --config webpack.config.js && cp ./src/manifest.json ./dist/manifest.json",
     "test": "echo \"Error: no test specified\" && exit 1"

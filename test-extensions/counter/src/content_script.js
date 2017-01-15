@@ -1,4 +1,4 @@
-import { init, msg } from 'mosi/lib/cs';
+import { init, msg } from 'mosi/client';
 
 // Inject Counter GUI into topright of page
 const counter = document.createElement('div');
@@ -18,5 +18,5 @@ init({
 
 // Add Click listener to increment count
 document.getElementById('increment').addEventListener('click', () => {
-  msg(0, 'INCREMENT');
+  msg(1, 'INCREMENT');
 });

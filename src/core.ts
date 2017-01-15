@@ -7,17 +7,39 @@ interface Connection {
   onDisconnect: ActionDetails[];
   tabId?: number;
   frameId?: number;
+  closed?: boolean;
+}
+
+class Connections {
+  connectionsByPort = new Map<chrome.runtime.Port, Connection>();
+  connectionsById = new Map<number, Connection>();
+  nextId = 2;
+  /** Adds new connection, returning its id */
+  add = (port: chrome.runtime.Port, subs: string[], onDisconnect: ActionDetails[]): number => {
+    /** browser action, page actions, devtools won't have tabId or frameId */
+    const sender = <chrome.runtime.MessageSender> port.sender;
+    let tabId;
+    if (sender.tab) tabId = sender.tab.id;
+    const frameId = sender.frameId;
+    /** client ids start at 2: 0 refers to self, 1 refers to core */
+    const id = this.nextId++;
+    const connection = { port, id, subs, onDisconnect, tabId, frameId }
+    this.connectionsByPort.set(port, connection);
+    this.connectionsById.set(id, connection);
+    return id;
+  }
+  remove = (port: chrome.runtime.Port): void => {
+    this.connectionsById.delete((<Connection> this.connectionsByPort.get(port)).id);
+    this.connectionsByPort.delete(port);
+  }
+  getByPort = (port: chrome.runtime.Port) => this.connectionsByPort.get(port)
+  getById = (id: number) =>  this.connectionsById.get(id);
 }
 
 class BP extends Node {
 
-  connections: Connection[] = [];
-
-  /**
-   * Generates incrementing number Ids starting with 2 because
-   * 0 is reserved for self, 1 is reserved for the bp
-   */
-  nextId = 2;
+  // connections: Connection[] = [];
+  connections = new Connections();
 
   /**
    * The background page doubles as the Communication Administrator. It must:
@@ -32,17 +54,8 @@ class BP extends Node {
     this.subscriptions = subscriptions;
     this.actions = actions;
     chrome.runtime.onConnect.addListener((port) => {
-      const id = this.nextId++;
       const { subs, onConnect: onC, onDisconnect: onD } = JSON.parse(port.name);
-
-      /** browser action, page actions, devtools won't have tabId or frameId */
-      const sender = <chrome.runtime.MessageSender> port.sender;
-      let tabId;
-      if (sender.tab) tabId = sender.tab.id;
-      const frameId = sender.frameId;
-
-      /** TODO: determine cost of unshift vs push */
-      this.connections.push({ port, id, subs, onDisconnect: onD, tabId, frameId });
+      const id = this.connections.add(port, subs, onD);
       port.onDisconnect.addListener(this.disconnectListener);
       port.onMessage.addListener(this.messageListener);
       this.executeOnConnectionActions(id, onC);
@@ -65,21 +78,27 @@ class BP extends Node {
     let targetSelf = false;
     let targets: Connection[] = [];
     if (typeof dst === 'number') {
-      targetSelf = dst === 0;
-      targets = this.connections.filter((c) => c.id === dst);
-    } else {
+      if (dst === 0 || dst === 1) {
+        targetSelf = true;
+      } else {
+        const target = this.connections.getById(dst);
+        if (!target) {
+          console.error('ERROR: attempted to message non-existent client');
+        } else if (target.closed) {
+          console.error('ERROR: attempted to message over closed connection');
+        } else {
+          targets = [target];
+        }
+      }
+    } else if (typeof dst === 'string') {
       targetSelf = this.subscriptions.includes(dst);
       targets = this.getTargets(dst);
+    } else {
+      console.error('ERROR: dst type is invalid');
     }
     if (targetSelf) this.actionHandler(action)(arg, src);
     targets.forEach(({port}) => {
-      port.postMessage({
-        src,
-        dst,
-        t: 'msg',
-        action,
-        arg
-      });
+      port.postMessage({ src, dst, t: 'msg', action, arg });
     });
   }
 
@@ -97,6 +116,7 @@ class BP extends Node {
   getTargets = (dst: string): Connection[] => {
     /** Returns true if the given connection is part of the destination, else false */
     const predicate = (connection: Connection): boolean => {
+      if (connection.closed) return false;
       for (const subDst of dst.split(';')) {
         const allConditionsMet = subDst.split('.').map<boolean>((condition) => {
           if (connection.subs.includes(condition)) {
@@ -122,23 +142,25 @@ class BP extends Node {
       }
       return false;
     };
-    return this.connections.filter(predicate);
+    // TODO: review perfomance cost of array conversion, perhaps rewrite to avoid conversion
+    return [...this.connections.connectionsById.values()].filter(predicate);
   }
 
   /**
-   * Removes the port from the managed connections and executes onDisconnt actions
-   * src is set to the background page to avoid messaging the disconnected page
+   * Executes onDisconnt actions and deletes data associated with connection.
+   * Connection is marked as closed so that no messages are sent to it when executing
+   * onDisconnect actions.
    */
   disconnectListener = (port: chrome.runtime.Port): void => {
-    const i = this.connections.findIndex((connection) => port === connection.port);
-    const onDisconnect = this.connections[i].onDisconnect;
-    this.connections.splice(i, 1);
-    this.executeOnConnectionActions(0, onDisconnect);
+    const connection = <Connection> this.connections.getByPort(port);
+    connection.closed = true;
+    this.executeOnConnectionActions(connection.id, connection.onDisconnect);
+    this.connections.remove(port);
   }
 
   messageListener = ({ src, dst, t, action, arg }: Message, port: chrome.runtime.Port) => {
     if (src === undefined) {
-      src = this.connections.filter((c) => c.port === port)[0].id;
+      src = (<Connection> this.connections.getByPort(port)).id
     }
     switch (t) {
       case 'msg':
@@ -155,4 +177,5 @@ const node = new BP();
 const init = node.init;
 const msg = node.msg;
 // const get = node.get;
-export { init, msg};
+const con = node.connections.getById;
+export { init, msg, con};

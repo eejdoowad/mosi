@@ -1,7 +1,7 @@
 {
-  "name": "mosi links example",
+  "name": "mosi static-links example",
   "version": "0.0",
-  "description": "demeonstrates mosi",
+  "description": "mosi static-links example",
   "background": {
     "scripts": ["background_page.js"]
   },

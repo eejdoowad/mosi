@@ -1,4 +1,4 @@
-import { init, msg } from 'mosi/lib/bp';
+import { init, msg } from 'mosi/core';
 
 let count = 0;
 

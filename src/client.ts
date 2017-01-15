@@ -19,7 +19,7 @@ class CS extends Node {
    * page
    */
   msg = (dst: Destination, action: string, arg: any): void => {
-    if (dst === 'self') { // TODO: support .unique also
+    if (dst === 0) { // TODO: support .unique also
       this.actionHandler(action)(arg, 0);
     } else {
       this.port.postMessage({

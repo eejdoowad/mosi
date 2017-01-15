@@ -2,14 +2,11 @@
   "name": "mosi",
   "version": "0.0.12",
   "description": "Simpler messaging for chrome extensions",
-  "jsnext:main": "lib/index.js",
-  "main": "lib/index.js",
-  "typings": "lib/index.d.ts",
   "scripts": {
-    "build": "npm run clean && tsc --project tsconfig.json && eslint --fix lib/*.js",
-    "clean": "rimraf lib",
-    "build:types": "cp mosi.all.d.ts cs.d.ts && cp mosi.all.d.ts bp.d.ts",
-    "clean:types": "rimraf cs.d.ts bp.d.ts",
+    "build": "npm run clean && tsc --project tsconfig.json && eslint --fix lib/*.js && mv lib/*.js . && rimraf lib",
+    "clean": "rimraf core.js client.js node.js",
+    "build:types": "cp mosi.all.d.ts client.d.ts && cp mosi.all.d.ts core.d.ts",
+    "clean:types": "rimraf client.d.ts core.d.ts",
     "build:all": "npm run build && npm run build:types",
     "clean:all": "npm run clean && npm run clean:types",
     "watch": "npm run build -- --watch",
@@ -25,9 +22,11 @@
   },
   "files": [
     "src",
-    "lib",
-    "bp.d.ts",
-    "cs.d.ts"
+    "core.js",
+    "client.js",
+    "node.js",
+    "core.d.ts",
+    "client.d.ts"
   ],
   "author": "eejdoowad <eejdoowad@gmail.com>",
   "license": "MIT",

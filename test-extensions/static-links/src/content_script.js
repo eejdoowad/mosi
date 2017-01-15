@@ -1,4 +1,4 @@
-import { init } from 'mosi/lib/cs';
+import { init } from 'mosi/client';
 
 // Inject Counter GUI into topright of page
 const counter = document.createElement('div');
