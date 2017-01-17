@@ -36,6 +36,7 @@ export abstract class Node {
 
   abstract init: (config: Config) => void;
   abstract msg: (dst: Destination, action: string, arg: any, src: string) => void;
+  abstract get: (dst: Destination, action: string, arg: any) => Promise<any[]>;
   abstract disconnectListener: (port: chrome.runtime.Port) => void;
   abstract messageListener: ({ src, dst, t, action, arg }: Message, port: chrome.runtime.Port) => void;
 

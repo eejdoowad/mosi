@@ -1,5 +1,17 @@
 import { Communicator, Config, Destination, Message, Node } from './node';
 
+class Transactions {
+  transactionId = 0;
+  transactions = new Map<number, {
+    resolve: Function,
+    reject: Function
+  }>();
+  add = (resolve: Function, reject: Function): void => {
+    this.transactionId++;
+    
+  }
+}
+
 class CS extends Node {
 
   port: chrome.runtime.Port;
@@ -16,18 +28,25 @@ class CS extends Node {
   /**
    * If the current node is the only target, immediately execute the
    * action locally, otherwise forward the message to the background
-   * page
+   * page.
+   * Doesn't send src id because only background page populates src id.
    */
   msg = (dst: Destination, action: string, arg: any): void => {
     if (dst === 0) { // TODO: support .unique also
       this.actionHandler(action)(arg, 0);
     } else {
-      this.port.postMessage({
-        // src, -- src missing because only background page populates src
-        dst,
-        t: 'msg',
-        action,
-        arg
+      this.port.postMessage({ dst, t: 'msg', action,  arg });
+    }
+  }
+
+  get = (dst: Destination, action: string, arg: any): Promise<any[]> => {
+    if (dst === 0) {
+      return await this.actionHandler(action)(arg, 0);
+    } else {
+      return new Promise((resolve, reject) => {
+
+        this.port.postMessage({ dst, t: 'get', action,  arg });
+        setTimeout()
       });
     }
   }
