@@ -1,4 +1,4 @@
-import { ActionDetails, Communicator, Config, Destination, Message, Node  } from './node';
+import { ActionDetails, Communicator, Config, Destination, GetResult, Message, Node  } from './node';
 
 interface Connection {
   port: chrome.runtime.Port;
@@ -69,12 +69,7 @@ class Core extends Node {
     });
   }
 
-  /** 
-   * If the destination includes the current node, execute the action locally.
-   * Also send an action message to every other destination node.
-   * TODO: CLEAN THIS UP
-   */
-  _msg = (src: number, dst: Destination, action: string, arg: any): void => {
+  getTargets = (dst: Destination): [boolean, Connection[]] => {
     let targetSelf = false;
     let targets: Connection[] = [];
     if (typeof dst === 'number') {
@@ -92,10 +87,20 @@ class Core extends Node {
       }
     } else if (typeof dst === 'string') {
       targetSelf = this.subscriptions.includes(dst);
-      targets = this.getTargets(dst);
+      targets = this.getStringTargets(dst);
     } else {
       console.error('ERROR: dst type is invalid');
     }
+    return [targetSelf, targets];
+  }
+
+  /** 
+   * If the destination includes the current node, execute the action locally.
+   * Also send an action message to every other destination node.
+   * TODO: CLEAN THIS UP
+   */
+  _msg = (src: number, dst: Destination, action: string, arg: any): void => {
+    const [targetSelf, targets] = this.getTargets(dst);
     if (targetSelf) this.actionHandler(action)(arg, src);
     targets.forEach(({port}) => {
       port.postMessage({ src, dst, t: 'msg', action, arg });
@@ -110,10 +115,10 @@ class Core extends Node {
  * A subdestination is composed of multiple conditions separated by periods.
  * A connection is part of a subdestination if it satisfies all its conditions.
  * This is conceptually akin to a conjunctive normal form (OR of AND) boolean formula.
- * getTargets should not include the local node as that is handled by a separate
+ * getStringTargets should not include the local node as that is handled by a separate
  * local action handler.
  */
-  getTargets = (dst: string): Connection[] => {
+  getStringTargets = (dst: string): Connection[] => {
     /** Returns true if the given connection is part of the destination, else false */
     const predicate = (connection: Connection): boolean => {
       if (connection.closed) return false;
@@ -146,13 +151,16 @@ class Core extends Node {
     return [...this.connections.connectionsById.values()].filter(predicate);
   }
 
-  get = async (dst: Destination, action: string, arg: any): Promise<any[]> => {
-    if (dst === 0) {
-      return await this.getLocal(action, arg);
-    } else {
-      return Promise.resolve(['meow']);
+  _get = async (src: number, dst: Destination, action: string, arg: any): Promise<GetResult[]> => {
+    const [targetSelf, targets] = this.getTargets(dst);
+    if (targetSelf) return [{ id: 0, v: await this.actionHandler(action)(arg, src)}];
+    else {
+      targets.forEach((t) => 1);
+      return Promise.resolve([{id: 0, e: 'meow'}]);
     }
   }
+
+  get = this._get.bind(undefined, 0);
 
   /**
    * Executes onDisconnt actions and deletes data associated with connection.
@@ -175,11 +183,9 @@ class Core extends Node {
         this._msg(src, dst, action, arg);
         return;
       case 'get':
-        if (dst === 1) {
-          this.getLocal(action, arg, 1).then((res) => {
-            port.postMessage({ t: 'rsp', res, tid});
-          });
-        }
+        this._get(src, dst, action, arg).then((res) => {
+          port.postMessage({ t: 'rsp', res, tid});
+        });
         return;
       case 'rsp':
         return;

@@ -66,7 +66,7 @@ class Client extends Node {
 
   get = async (dst: Destination, action: string, arg: any): Promise<GetResult[]> => {
     if (dst === 0) {
-      return await this.getLocal(action, arg);
+      return [{ id: 0, v: await this.actionHandler(action)(arg, 0)}];
     } else {
       return this.transactions.createGet(this.port, dst, action, arg);
     }

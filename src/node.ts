@@ -46,5 +46,5 @@ export abstract class Node {
   errorHandler = (action: string) => (arg: any) => {
     console.error(`ERROR: No action type ${action}`);
   }
-  getLocal = async (action: string, arg: any, id = 0) => [{ id, v: await this.actionHandler(action)(arg, 0)}];
+  getLocal = async (action: string, arg: any, id = 0) => [{ id, v: await this.actionHandler(action)(arg, id)}];
 }
