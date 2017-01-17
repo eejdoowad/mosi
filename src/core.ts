@@ -36,7 +36,7 @@ class Connections {
   getById = (id: number) =>  this.connectionsById.get(id);
 }
 
-class BP extends Node {
+class Core extends Node {
 
   // connections: Connection[] = [];
   connections = new Connections();
@@ -146,6 +146,14 @@ class BP extends Node {
     return [...this.connections.connectionsById.values()].filter(predicate);
   }
 
+  get = async (dst: Destination, action: string, arg: any): Promise<any[]> => {
+    if (dst === 0) {
+      return await this.getLocal(action, arg);
+    } else {
+      return Promise.resolve(['meow']);
+    }
+  }
+
   /**
    * Executes onDisconnt actions and deletes data associated with connection.
    * Connection is marked as closed so that no messages are sent to it when executing
@@ -158,24 +166,33 @@ class BP extends Node {
     this.connections.remove(port);
   }
 
-  messageListener = ({ src, dst, t, action, arg }: Message, port: chrome.runtime.Port) => {
+  messageListener = ({ src, dst, t, action, arg, tid }: Message, port: chrome.runtime.Port) => {
     if (src === undefined) {
-      src = (<Connection> this.connections.getByPort(port)).id
+      src = (<Connection> this.connections.getByPort(port)).id;
     }
     switch (t) {
       case 'msg':
-        this._msg(src, dst, action, arg); return;
+        this._msg(src, dst, action, arg);
+        return;
       case 'get':
-        console.error('ERROR: Not yet implemented'); return;
+        if (dst === 1) {
+          this.getLocal(action, arg, 1).then((res) => {
+            port.postMessage({ t: 'rsp', res, tid});
+          });
+        }
+        return;
+      case 'rsp':
+        return;
       default:
-        console.error(`ERROR: Invalid message class: ${t}`); return;
+        console.error(`ERROR: Invalid message class: ${t}`);
+        return;
     }
   }
 }
 
-const node = new BP();
+const node = new Core();
 const init = node.init;
 const msg = node.msg;
-// const get = node.get;
+const get = node.get;
 const con = node.connections.getById;
-export { init, msg, con};
+export { init, msg, con, get };

@@ -235,6 +235,10 @@ get is like msg, except it returns a value. Specifically, it returns a Promise o
 const [count] = await net("bp").get("COUNT");
 ```
 
+## connect and disconnect
+
+By default, calling init connects the node to the network. You can, however, suppress automatic connections by specifying `connect: false` in the initialization object. You can then manually connect by calling connect() and disconnect by calling disconnect().
+
 # Examples
 
 * [Counter]()

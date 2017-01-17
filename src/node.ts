@@ -1,5 +1,10 @@
-export type Action = (arg: any, src: number) => void;
+export type Action = (arg: any, src: number) => any;
 export type Destination = string | number;
+export type GetResult = {
+  id: number,
+  v?: any,
+  e?: any
+};
 export interface Communicator {
   msg(action: string, arg?: any): void;
 }
@@ -19,24 +24,20 @@ export interface Message {
   dst: Destination;
   t: string;
   action: string;
-  arg?: any; };
+  arg?: any;
+  tid?: number;
+  res?: any;
+};
 export interface MessageListener { (message: Message, port: chrome.runtime.Port): void; }
-
-export interface Transaction {
-  src: string;
-  id: number;
-}
 
 export abstract class Node {
 
   actions: { [key: string]: Action };
   subscriptions: string[];
-  nextTransactionId = 0;
-  transactions: Transaction[] = [];
 
   abstract init: (config: Config) => void;
   abstract msg: (dst: Destination, action: string, arg: any, src: string) => void;
-  abstract get: (dst: Destination, action: string, arg: any) => Promise<any[]>;
+  abstract get: (dst: Destination, action: string, arg: any) => Promise<GetResult[]>;
   abstract disconnectListener: (port: chrome.runtime.Port) => void;
   abstract messageListener: ({ src, dst, t, action, arg }: Message, port: chrome.runtime.Port) => void;
 
@@ -45,4 +46,5 @@ export abstract class Node {
   errorHandler = (action: string) => (arg: any) => {
     console.error(`ERROR: No action type ${action}`);
   }
+  getLocal = async (action: string, arg: any, id = 0) => [{ id, v: await this.actionHandler(action)(arg, 0)}];
 }

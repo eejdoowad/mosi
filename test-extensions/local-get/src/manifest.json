@@ -1,0 +1,13 @@
+{
+  "name": "mosi local-get example",
+  "version": "0.0",
+  "description": "demonstrates local-get",
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content_script.js"]
+    }
+  ],
+  "manifest_version": 2,
+  "web_accessible_resources": ["content_script.js.map"]
+}

@@ -28,7 +28,7 @@ class Connections {
     this.getById = (id) => this.connectionsById.get(id);
   }
 }
-class BP extends Node {
+class Core extends Node {
   constructor () {
     super(...arguments);
         // connections: Connection[] = [];
@@ -86,9 +86,7 @@ class BP extends Node {
       } else {
         console.error('ERROR: dst type is invalid');
       }
-      if (targetSelf) {
-        this.actionHandler(action)(arg, src);
-      }
+      if (targetSelf) { this.actionHandler(action)(arg, src); }
       targets.forEach(({ port }) => {
         port.postMessage({ src, dst, t: 'msg', action, arg });
       });
@@ -130,14 +128,19 @@ class BP extends Node {
             }
             return false;
           }).every((conditionMet) => conditionMet);
-          if (allConditionsMet) {
-            return true;
-          }
+          if (allConditionsMet) { return true; }
         }
         return false;
       };
             // TODO: review perfomance cost of array conversion, perhaps rewrite to avoid conversion
       return [...this.connections.connectionsById.values()].filter(predicate);
+    };
+    this.get = async (dst, action, arg) => {
+      if (dst === 0) {
+        return await this.getLocal(action, arg);
+      } else {
+        return Promise.resolve(['meow']);
+      }
     };
         /**
          * Executes onDisconnt actions and deletes data associated with connection.
@@ -150,7 +153,7 @@ class BP extends Node {
       this.executeOnConnectionActions(connection.id, connection.onDisconnect);
       this.connections.remove(port);
     };
-    this.messageListener = ({ src, dst, t, action, arg }, port) => {
+    this.messageListener = ({ src, dst, t, action, arg, tid }, port) => {
       if (src === undefined) {
         src = this.connections.getByPort(port).id;
       }
@@ -159,7 +162,13 @@ class BP extends Node {
           this._msg(src, dst, action, arg);
           return;
         case 'get':
-          console.error('ERROR: Not yet implemented');
+          if (dst === 1) {
+            this.getLocal(action, arg, 1).then((res) => {
+              port.postMessage({ t: 'rsp', res, tid });
+            });
+          }
+          return;
+        case 'rsp':
           return;
         default:
           console.error(`ERROR: Invalid message class: ${t}`);
@@ -168,9 +177,9 @@ class BP extends Node {
     };
   }
 }
-const node = new BP();
+const node = new Core();
 const init = node.init;
 const msg = node.msg;
-// const get = node.get;
+const get = node.get;
 const con = node.connections.getById;
-export { init, msg, con };
+export { init, msg, con, get };
