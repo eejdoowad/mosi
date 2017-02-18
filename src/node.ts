@@ -5,9 +5,6 @@ export type GetResult = {
   v?: any,
   e?: any
 };
-export interface Communicator {
-  msg(action: string, arg?: any): void;
-}
 export interface ActionDetails {
   action: string;
   arg?: any;
@@ -30,12 +27,35 @@ export interface Message {
 };
 export interface MessageListener { (message: Message, port: chrome.runtime.Port): void; }
 
-export type TDetails = {
-    resolve: Function,
-    reject: Function,
-    timeout: NodeJS.Timer
+type TransactionInfo = {
+  resolve: Function,
+  reject: Function,
+  timer: NodeJS.Timer
 };
-export type TMap = Map<number, TDetails>;
+
+export class Transactions {
+  tid = 0;
+  transactions: { [key: number]: TransactionInfo} = {};
+  timeout: number;
+  constructor(timeout = 1000) { this.timeout = timeout; }
+  new = (resolve: Function, reject: Function) => {
+    const tid = ++this.tid;
+    const timer = setTimeout(() => {
+      this.delete(tid);
+      reject(`Transaction ${tid} timed out.`);
+    }, this.timeout);
+    this.transactions[tid] = { resolve, reject, timer}
+    return tid
+  }
+  delete = (tid: number) => {
+    clearTimeout(this.transactions[tid].timer);
+    delete this.transactions[tid];
+  }
+  complete = (tid: number, res: GetResult) => {
+    this.transactions[tid].resolve(res);
+    this.delete(tid);
+  }
+}
 
 export abstract class Node {
 

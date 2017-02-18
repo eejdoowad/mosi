@@ -1,37 +1,9 @@
-import { Communicator, Config, Destination, GetResult, Message, Node, TDetails, TMap } from './node';
-
-class Transactions {
-
-  timeout = 1000;
-  transactionId = 0;
-  transactions: TMap = new Map();
-
-  createGet = (port: chrome.runtime.Port, dst: Destination, action: string, arg: any): Promise<any[]> => {
-    return new Promise<any[]>((resolve, reject) => {
-      this.transactionId++;
-      port.postMessage({ dst, t: 'get', action,  arg, tid: this.transactionId });
-      const timeout = setTimeout(() => {
-        this.transactions.delete(this.transactionId);
-        reject(`ERROR: no response received within ${this.timeout}ms`);
-      }, this.timeout);
-      this.transactions.set(this.transactionId, { resolve, reject, timeout });
-    });
-  }
-  onRsp = (tid: number, res: any): void => {
-    const transaction = this.transactions.get(tid);
-    if (transaction) {
-      clearTimeout(transaction.timeout);
-      transaction.resolve(res);
-    } else { // TODO: remove this
-      console.error(`transaction ${tid} must have been rejected already`);
-    }
-    this.transactions.delete(tid);
-  }
-}
+import { Config, Destination, GetResult, Message, Node, Transactions } from './node';
 
 class Client extends Node {
 
   port: chrome.runtime.Port;
+  timeout = 1000;
   transactions = new Transactions();
 
    init = ({ subscriptions = [], onConnect = [], onDisconnect = [], actions }: Config) => {
@@ -53,16 +25,33 @@ class Client extends Node {
     if (dst === 0) { // TODO: support .unique also
       this.actionHandler(action)(arg, 0);
     } else {
-      this.port.postMessage({ dst, t: 'msg', action,  arg });
+      this.port.postMessage({t: 'msg', dst, action, arg });
     }
   }
 
-  get = async (dst: Destination, action: string, arg: any): Promise<GetResult[]> => {
-    if (dst === 0) {
-      return [{ id: 0, v: await this.actionHandler(action)(arg, 0)}];
-    } else {
-      return this.transactions.createGet(this.port, dst, action, arg);
+  _getLocal = async (localId: number, src: number, action: string, arg: any): Promise<GetResult> => {
+    try {
+      return { id: localId, v: await this.actionHandler(action)(arg, src) };
+    } catch(error) {
+      return { id: localId, e: error };
     }
+  }
+
+  _getRemote = (dst: Destination, action: string, arg: any): Promise<any[]> =>
+    new Promise<GetResult[]>((resolve, reject) => {
+      const tid = this.transactions.new(resolve, reject);
+      this.port.postMessage({t: 'get', dst, action, arg, tid });
+    });
+  
+  /**
+   * localId is the id of the current node
+   * localId will be set to 0 if called locally
+   * localId will be set to the node's global id if called from some other node
+   */
+  get = async (dst: Destination, action: string, arg: any): Promise<GetResult[]> => {
+     return (dst === 0)
+      ? [await this._getLocal(0, 0, action, arg)]
+      : await this._getRemote(dst, action, arg);
   }
 
   disconnectListener = (port: chrome.runtime.Port): void => {
@@ -76,21 +65,22 @@ class Client extends Node {
    * t is the message class
    * If a client node receives a message, it must be an intended destination
    */
-
-  messageListener = ({ src, dst, t, action, arg, tid, res }: Message, port: chrome.runtime.Port) => {
+  messageListener = ({ src, dst, t, action, arg, tid, res }: Message) => {
     switch (t) {
       case 'msg':
         this.actionHandler(action)(arg, <number> src);
-        return;
+        break;
       case 'get':
-        console.error('ERROR: Not yet implemented');
-        return;
+        this._getLocal(<number> dst, <number> src, action, arg).then((res) => {
+          this.port.postMessage({ t: 'rsp', src: dst, dst: src, tid, res });
+        });
+        break;
       case 'rsp':
-        this.transactions.onRsp(<number> tid, res);
-        return;
+        this.transactions.complete(<number> tid, res);
+        break;
       default:
         console.error(`ERROR: Invalid message class: ${t}`);
-        return;
+        break;
     }
   }
 }

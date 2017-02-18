@@ -1,4 +1,4 @@
-import { ActionDetails, Communicator, Config, Destination, GetResult, Message, Node, TDetails, TMap  } from './node';
+import { ActionDetails, Config, Destination, GetResult, Message, Node, Transactions  } from './node';
 
 interface Connection {
   port: chrome.runtime.Port;
@@ -8,7 +8,7 @@ interface Connection {
   tabId?: number;
   frameId?: number;
   closed?: boolean;
-  transactions: TMap;
+  transactions: Transactions;
 }
 
 class Connections {
@@ -24,7 +24,7 @@ class Connections {
     const frameId = sender.frameId;
     /** client ids start at 2: 0 refers to self, 1 refers to core */
     const id = this.nextId++;
-    const transactions: TMap = new Map();
+    const transactions = new Transactions();
     const connection = { port, id, subs, onDisconnect, tabId, frameId, transactions };
     this.connectionsByPort.set(port, connection);
     this.connectionsById.set(id, connection);
@@ -153,29 +153,36 @@ class Core extends Node {
     return [...this.connections.connectionsById.values()].filter(predicate);
   }
 
-  localGet = async (src: number, action: string, arg: any): Promise<GetResult> => ({
-    id: 1, v: await this.actionHandler(action)(arg, src)
-  })
+  _getLocal = async (src: number, action: string, arg: any): Promise<GetResult> => {
+    try {
+      return { id: 1, v: await this.actionHandler(action)(arg, src) };
+    } catch(error) {
+      return { id: 1, e: error };
+    }
+  }
+
+  _getRemote = (connection: Connection, src: number, dst: Destination,
+    action: string, arg: any): Promise<GetResult> => {
+    return new Promise<GetResult>((resolve, reject) => {
+      const tid = connection.transactions.new(resolve, reject);
+      connection.port.postMessage({ t: 'get', src, dst, action,  arg, tid });
+    });
+  }
 
   _get = async (src: number, dst: Destination, action: string, arg: any): Promise<GetResult[]> => {
     const [targetSelf, targets] = this.getTargets(dst);
-    const selfResult: Array<Promise<GetResult>> = targetSelf ? [this.localGet(src, action, arg)] : [];
-    return Promise.all([...selfResult, ...targets.map()]);
+    const localResult: Array<Promise<GetResult>> = (targetSelf)
+      ? [this._getLocal(src, action, arg)]
+      : []
+    const remoteResults = targets.map((target) =>
+      this._getRemote(target, src, dst, action, arg)
+    )
+
+    // TODO: Proper Promise handling (don't fail if any fails)
+    return Promise.all([...localResult, ...remoteResults]);
   }
 
   get = this._get.bind(undefined, 0);
-
-  createGet = (connection: Connection, src: number, tid: number, dst: Destination,
-    action: string, arg: any): Promise<GetResult> => {
-    return new Promise<GetResult>((resolve, reject) => {
-      connection.port.postMessage({ dst, t: 'get', action,  arg, tid });
-      const timeout = setTimeout(() => {
-        connection.transactions.delete(tid);
-        reject(`ERROR: no response received within ${1000}ms`);
-      }, 1000);
-      connection.transactions.set(tid, { resolve, reject, timeout });
-    });
-  }
 
   /**
    * Executes onDisconnt actions and deletes data associated with connection.
@@ -189,24 +196,31 @@ class Core extends Node {
     this.connections.remove(port);
   }
 
-  messageListener = ({ src, dst, t, action, arg, tid }: Message, port: chrome.runtime.Port) => {
-    if (src === undefined) {
-      src = (<Connection> this.connections.getByPort(port)).id;
-    }
+  /**
+   * Handles messages on receipt by calling the appropriate internal function
+   */
+  messageListener = ({ src, dst, t, action, arg, tid, res }: Message, port: chrome.runtime.Port) => {
+    if (src === undefined) src = (<Connection> this.connections.getByPort(port)).id;
     switch (t) {
       case 'msg':
         this._msg(src, dst, action, arg);
-        return;
+        break;
       case 'get':
         this._get(src, dst, action, arg).then((res) => {
           port.postMessage({ t: 'rsp', res, tid});
         });
-        return;
+        break;
       case 'rsp':
-        return;
+        const connection = this.connections.getByPort(port);
+        if (connection) {
+          connection.transactions.complete(<number> tid, res);
+        } else {
+          console.error('ERROR SILLY PORT')
+        }
+        break;
       default:
         console.error(`ERROR: Invalid message class: ${t}`);
-        return;
+        break;
     }
   }
 }
