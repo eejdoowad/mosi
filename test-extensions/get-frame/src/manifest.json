@@ -1,0 +1,17 @@
+{
+  "name": "mosi get-frame example",
+  "version": "0.0",
+  "description": "demonstrates querying MessageSender arguments",
+  "background": {
+    "scripts": ["background_page.js"]
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content_script.js"],
+      "all_frames": true
+    }
+  ],
+  "manifest_version": 2,
+  "web_accessible_resources": ["background_page.js.map", "content_script.js.map"]
+}

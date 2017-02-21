@@ -1,4 +1,4 @@
-import { init, msg } from 'mosi/client';
+import { init, get } from 'mosi/client';
 
 // Inject Counter GUI into topright of page
 const counter = document.createElement('div');
@@ -9,6 +9,6 @@ document.body.appendChild(counter);
 init({});
 
 document.getElementById('rbutton').addEventListener('click', async () => {
-  const [random] = await get(1, 'RANDOM');
+  const [{v: random}] = await get(1, 'RANDOM');
   document.getElementById('random').value = random;
 });

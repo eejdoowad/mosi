@@ -1,5 +1,7 @@
 import { ActionDetails, Config, Destination, GetResult, Message, Node, Transactions  } from './node';
 
+export type Action = (arg: any, src: number, sender?: chrome.runtime.MessageSender) => any;
+
 interface Connection {
   port: chrome.runtime.Port;
   id: number;
@@ -40,6 +42,7 @@ class Connections {
 
 class Core extends Node {
 
+  actions: { [key: string]: Action };
   connections = new Connections();
 
   constructor () {
@@ -110,7 +113,7 @@ class Core extends Node {
    */
   _msg = (src: number, dst: Destination, action: string, arg: any): void => {
     const [targetSelf, targets] = this.getTargets(dst);
-    if (targetSelf) this.actionHandler(action)(arg, src);
+    if (targetSelf) this.actionHandler(action, arg, src);
     targets.forEach(({port}) => {
       port.postMessage({ src, dst, t: 'msg', action, arg });
     });
@@ -162,7 +165,7 @@ class Core extends Node {
 
   _getLocal = async (src: number, action: string, arg: any): Promise<GetResult> => {
     try {
-      return { id: 1, v: await this.actionHandler(action)(arg, src) };
+      return { id: 1, v: await this.actionHandler(action, arg, src) };
     } catch(error) {
       return { id: 1, e: error };
     }
@@ -213,8 +216,8 @@ class Core extends Node {
         this._msg(src, dst, action, arg);
         break;
       case 'get':
-        this._get(src, dst, action, arg).then((res) => {
-          port.postMessage({ t: 'rsp', res, tid});
+        this._get(src, dst, action, arg).then((result) => {
+          port.postMessage({ t: 'rsp', res: result, tid});
         });
         break;
       case 'rsp':
@@ -229,6 +232,22 @@ class Core extends Node {
         console.error(`ERROR: Invalid message class: ${t}`);
         break;
     }
+  }
+
+  senderDetails = (src: number) => {
+    const srcDetails = this.connections.getById(src);
+    return srcDetails
+      ? srcDetails.port.sender
+      : undefined;
+  }
+
+  actionHandler = (action: string, arg: any, src: number) => {
+    const handler = this.actions[action] || this.errorHandler(action);
+    return handler(arg, src, this.senderDetails(src));
+  }
+
+  errorHandler = (action: string) => (arg: any) => {
+    console.error(`ERROR: No action type ${action}`);
   }
 }
 

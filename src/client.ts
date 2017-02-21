@@ -1,7 +1,8 @@
-import { Config, Destination, GetResult, Message, Node, Transactions } from './node';
+import { Action, Config, Destination, GetResult, Message, Node, Transactions } from './node';
 
 class Client extends Node {
 
+  actions: { [key: string]: Action };
   port: chrome.runtime.Port;
   timeout = 1000;
   transactions = new Transactions();
@@ -82,6 +83,12 @@ class Client extends Node {
         console.error(`ERROR: Invalid message class: ${t}`);
         break;
     }
+  }
+
+  actionHandler = (action: string): Action =>
+    this.actions[action] || this.errorHandler(action);
+  errorHandler = (action: string) => (arg: any) => {
+    console.error(`ERROR: No action type ${action}`);
   }
 }
 

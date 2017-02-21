@@ -58,19 +58,10 @@ export class Transactions {
 }
 
 export abstract class Node {
-
-  actions: { [key: string]: Action };
   subscriptions: string[];
-
   abstract init: (config: Config) => void;
   abstract msg: (dst: Destination, action: string, arg: any, src: string) => void;
   abstract get: (dst: Destination, action: string, arg: any) => Promise<GetResult[]>;
   abstract disconnectListener: (port: chrome.runtime.Port) => void;
   abstract messageListener: ({ src, dst, t, action, arg }: Message, port: chrome.runtime.Port) => void;
-
-  actionHandler = (action: string): Action =>
-    this.actions[action] || this.errorHandler(action);
-  errorHandler = (action: string) => (arg: any) => {
-    console.error(`ERROR: No action type ${action}`);
-  }
 }
