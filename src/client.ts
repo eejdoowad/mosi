@@ -6,7 +6,7 @@ class Client extends Node {
   timeout = 1000;
   transactions = new Transactions();
 
-   init = ({ subscriptions = [], onConnect = [], onDisconnect = [], actions }: Config) => {
+  init = ({ subscriptions = [], onConnect = [], onDisconnect = [], actions }: Config) => {
     this.subscriptions = subscriptions;
     this.actions = actions;
     const connectionInfo = { subs: this.subscriptions, onConnect, onDisconnect };
@@ -84,6 +84,7 @@ class Client extends Node {
     }
   }
 }
+
 
 const node = new Client();
 const init = node.init;

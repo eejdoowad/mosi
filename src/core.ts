@@ -40,8 +40,15 @@ class Connections {
 
 class Core extends Node {
 
-  // connections: Connection[] = [];
   connections = new Connections();
+
+  constructor () {
+    super();
+    /** adds a listener for light-client messages */
+    chrome.runtime.onMessage.addListener(({ mosi_lw_msg, action, arg }) => {
+      if (mosi_lw_msg) this.actionHandler(action)(arg, 1);
+    });
+  }
 
   /**
    * The background page doubles as the Communication Administrator. It must:

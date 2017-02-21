@@ -1,0 +1,15 @@
+{
+  "name": "light-client-example",
+  "description": "Demonstrates the light-client's msg function",
+  "scripts": {
+    "build": "rimraf dist && webpack --config webpack.config.js && cp ./src/manifest.json ./dist/manifest.json",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "respository": {},
+  "license": "MIT",
+  "devDependencies": {
+    "rimraf": "^2.5.4",
+    "webpack": "^2.2.0-rc.3"
+  },
+  "dependencies": {}
+}

@@ -24,6 +24,7 @@
     "src",
     "core.js",
     "client.js",
+    "light-client.js",
     "node.js",
     "core.d.ts",
     "client.d.ts"
