@@ -60,9 +60,8 @@ class Core extends Node {
     /** adds a listener for light-client messages */
     chrome.runtime.onMessage.addListener(({ mosi_lw_msg, dst, action, arg }, sender) => {
       if (mosi_lw_msg) {
-        this.connections.withTmpConnection(sender, (connectionId: number) => {
-          /* source is set to core */
-          this._msg(connectionId, dst, action, arg);
+        this.connections.withTmpConnection(sender, async (connectionId: number) => {
+          await this._msg(connectionId, dst, action, arg);
         });
       }
     });
@@ -257,7 +256,7 @@ class Core extends Node {
     }
   }
 
-  con = (connectionId: number) => {
+  meta = (connectionId: number) => {
     const connection = this.connections.getById(connectionId);
     if (connection) {
       return {
@@ -275,5 +274,5 @@ const node = new Core();
 const init = node.init;
 const msg = node.msg;
 const get = node.get;
-const con = node.con;
-export { init, msg, con, get };
+const meta = node.meta;
+export { init, msg, meta, get };

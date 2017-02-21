@@ -1,6 +1,6 @@
 {
   "name": "mosi",
-  "version": "0.4.1",
+  "version": "0.5.1",
   "description": "Simpler messaging for chrome extensions",
   "scripts": {
     "build": "npm run clean && tsc --project tsconfig.json && eslint --fix lib/*.js && mv lib/*.js . && rimraf lib",
