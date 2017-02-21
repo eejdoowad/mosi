@@ -1,6 +1,4 @@
-import { ActionDetails, Config, Destination, GetResult, Message, Node, Transactions  } from './node';
-
-export type Action = (arg: any, src: number, sender?: chrome.runtime.MessageSender) => any;
+import { Action, ActionDetails, Config, Destination, GetResult, Message, Node, Transactions  } from './node';
 
 interface Connection {
   port: chrome.runtime.Port;
@@ -41,8 +39,7 @@ class Connections {
 }
 
 class Core extends Node {
-
-  actions: { [key: string]: Action };
+  
   connections = new Connections();
 
   constructor () {
@@ -232,22 +229,6 @@ class Core extends Node {
         console.error(`ERROR: Invalid message class: ${t}`);
         break;
     }
-  }
-
-  senderDetails = (src: number) => {
-    const srcDetails = this.connections.getById(src);
-    return srcDetails
-      ? srcDetails.port.sender
-      : undefined;
-  }
-
-  actionHandler = (action: string, arg: any, src: number) => {
-    const handler = this.actions[action] || this.errorHandler(action);
-    return handler(arg, src, this.senderDetails(src));
-  }
-
-  errorHandler = (action: string) => (arg: any) => {
-    console.error(`ERROR: No action type ${action}`);
   }
 }
 

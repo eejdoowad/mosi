@@ -2,7 +2,6 @@ import { Action, Config, Destination, GetResult, Message, Node, Transactions } f
 
 class Client extends Node {
 
-  actions: { [key: string]: Action };
   port: chrome.runtime.Port;
   timeout = 1000;
   transactions = new Transactions();

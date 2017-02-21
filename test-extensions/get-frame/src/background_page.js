@@ -1,7 +1,7 @@
-import { init } from 'mosi/core';
+import { con, init } from 'mosi/core';
 
 init({
   actions: {
-    FRAME: (arg, src, { frameId }) => frameId
+    FRAME: (arg, src) => con(src).frameId
   }
 });
