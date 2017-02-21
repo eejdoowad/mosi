@@ -1,7 +1,7 @@
 import { Action, ActionDetails, Config, Destination, GetResult, Message, Node, Transactions  } from './node';
 
 interface Connection {
-  port: chrome.runtime.Port;
+  port?: chrome.runtime.Port;
   id: number;
   subs: string[];
   onDisconnect: ActionDetails[];
@@ -9,6 +9,7 @@ interface Connection {
   frameId?: number;
   closed?: boolean;
   transactions: Transactions;
+  sender: chrome.runtime.MessageSender;
 }
 
 class Connections {
@@ -25,7 +26,7 @@ class Connections {
     /** client ids start at 2: 0 refers to self, 1 refers to core */
     const id = this.nextId++;
     const transactions = new Transactions();
-    const connection = { port, id, subs, onDisconnect, tabId, frameId, transactions };
+    const connection = { port, id, subs, onDisconnect, tabId, frameId, transactions, sender };
     this.connectionsByPort.set(port, connection);
     this.connectionsById.set(id, connection);
     return id;
@@ -34,19 +35,36 @@ class Connections {
     this.connectionsById.delete((<Connection> this.connectionsByPort.get(port)).id);
     this.connectionsByPort.delete(port);
   }
+  /** execute callback in context of a temporary connection, used for light-client */
+  withTmpConnection = async (sender: chrome.runtime.MessageSender, callback: Function) => {
+    let tabId;
+    if (sender.tab) tabId = sender.tab.id;
+    const frameId = sender.frameId;
+    const id = this.nextId++;
+    const transactions = new Transactions();
+    const connection = { id, subs: [], onDisconnect: [], tabId, frameId, transactions, sender };
+    this.connectionsById.set(id, connection);
+    await callback(id);
+    this.connectionsById.delete(id);
+  }
   getByPort = (port: chrome.runtime.Port) => this.connectionsByPort.get(port)
   getById = (id: number) =>  this.connectionsById.get(id);
 }
 
 class Core extends Node {
-  
+
   connections = new Connections();
 
   constructor () {
     super();
     /** adds a listener for light-client messages */
-    chrome.runtime.onMessage.addListener(({ mosi_lw_msg, dst, action, arg }) => {
-      if (mosi_lw_msg) this._msg(1, dst, action, arg);
+    chrome.runtime.onMessage.addListener(({ mosi_lw_msg, dst, action, arg }, sender) => {
+      if (mosi_lw_msg) {
+        this.connections.withTmpConnection(sender, (connectionId: number) => {
+          /* source is set to core */
+          this._msg(connectionId, dst, action, arg);
+        });
+      }
     });
   }
 
@@ -112,7 +130,11 @@ class Core extends Node {
     const [targetSelf, targets] = this.getTargets(dst);
     if (targetSelf) this.actionHandler(action, arg, src);
     targets.forEach(({port}) => {
-      port.postMessage({ src, dst, t: 'msg', action, arg });
+      if (port) {
+        port.postMessage({ src, dst, t: 'msg', action, arg });
+      } else {
+        throw Error('No messaging light-clients');
+      }
     });
   }
 
@@ -172,7 +194,11 @@ class Core extends Node {
     action: string, arg: any): Promise<GetResult> => {
     return new Promise<GetResult>((resolve, reject) => {
       const tid = connection.transactions.new(resolve, reject);
-      connection.port.postMessage({ t: 'get', src, dst, action,  arg, tid });
+      if (connection.port) {
+        connection.port.postMessage({ t: 'get', src, dst, action,  arg, tid });
+      } else {
+        throw Error('No messaging light-clients');
+      }
     });
   }
 
@@ -180,10 +206,10 @@ class Core extends Node {
     const [targetSelf, targets] = this.getTargets(dst);
     const localResult: Array<Promise<GetResult>> = (targetSelf)
       ? [this._getLocal(src, action, arg)]
-      : []
+      : [];
     const remoteResults = targets.map((target) =>
       this._getRemote(target, src, dst, action, arg)
-    )
+    );
 
     // TODO: Proper Promise handling (don't fail if any fails)
     return Promise.all([...localResult, ...remoteResults]);
@@ -230,11 +256,24 @@ class Core extends Node {
         break;
     }
   }
+
+  con = (connectionId: number) => {
+    const connection = this.connections.getById(connectionId);
+    if (connection) {
+      return {
+        frameId: connection.frameId,
+        tabId: connection.tabId,
+        sender: connection.sender,
+        subs: connection.subs
+      };
+    }
+    return undefined;
+  }
 }
 
 const node = new Core();
 const init = node.init;
 const msg = node.msg;
 const get = node.get;
-const con = node.connections.getById;
+const con = node.con;
 export { init, msg, con, get };
