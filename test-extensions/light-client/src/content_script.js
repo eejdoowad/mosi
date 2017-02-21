@@ -11,5 +11,5 @@ document.body.appendChild(counter);
 // Add Click listener to increment count
 document.getElementById('increment').addEventListener('click', () => {
   const randomNumber = Math.floor(Math.random() * 100);
-  msg('RANDOM', randomNumber);
+  msg(1, 'RANDOM', randomNumber);
 });

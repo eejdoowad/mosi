@@ -45,8 +45,8 @@ class Core extends Node {
   constructor () {
     super();
     /** adds a listener for light-client messages */
-    chrome.runtime.onMessage.addListener(({ mosi_lw_msg, action, arg }) => {
-      if (mosi_lw_msg) this.actionHandler(action)(arg, 1);
+    chrome.runtime.onMessage.addListener(({ mosi_lw_msg, dst, action, arg }) => {
+      if (mosi_lw_msg) this._msg(1, dst, action, arg);
     });
   }
 
