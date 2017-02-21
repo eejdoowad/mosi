@@ -1,10 +1,10 @@
 {
   "name": "mosi",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Simpler messaging for chrome extensions",
   "scripts": {
     "build": "npm run clean && tsc --project tsconfig.json && eslint --fix lib/*.js && mv lib/*.js . && rimraf lib",
-    "clean": "rimraf core.js client.js node.js",
+    "clean": "rimraf core.js client.js node.js light-client.js",
     "build:types": "cp mosi.all.d.ts client.d.ts && cp mosi.all.d.ts core.d.ts",
     "clean:types": "rimraf client.d.ts core.d.ts",
     "build:all": "npm run build && npm run build:types",
