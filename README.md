@@ -177,7 +177,7 @@ The following functions are provided by each package:
 
 * `actions` is an object whose keys are action types and values are action handlers. An action handler is a function that is called a message is received. All calls to `msg` and `get` must specify the name of the action to be executed. If a client receives a message for an action type it doesn't have a handler for, it throws an error. The first argument of an action handler is the `arg` specified by the call to `msg` or `get` by the sending node. The second argument is the `src` node identifier, which is an integer. You can send a response back to the message source from a handler by calling `msg` or `get` and specifying `src` as the target. The value returned by an action handler is the result returned to calls to `get`.
 
-* `subscriptions` - a node's subscription
+* `subscriptions` is an array of strings corresponding to a node's subscription. A node will receive all message targeted to any of its subscriptions.
 
 ```javascript
 init({
