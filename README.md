@@ -6,15 +6,14 @@ Check out [Saka Key](https://github.com/lusakasa/saka-key) to see how Mosi is us
 
 # Index
 
-* [Brief API] (brief api)
-* [Quick Example - A Counter Extension](example)
-* [Install](install)
-* [API](api)
-* [Examples](examples)
-* [Considerations and Limitations](limits)
-* [Contributing](contributing)
+* [API Overview](#api-overview)
+* [Example](#example)
+* [Install](#install)
+* [API Details](#api-details)
+* [Limitations](#limitations)
+* [Contributing](#contributing)
 
-# [brief api]: API Overview
+# API Overview
 
 ## init - intializes a node for messaging
 
@@ -74,7 +73,7 @@ result[0].v
 result[0].e
 ```
 
-# [example]: Quick Example - A Counter Extension
+# Example
 
 This is [code](./test-extensions/counter) for an extension that displays a count on every tab. The count starts at 0 and can be incremented by pressing a button. All tabs share the same count so that when the count is incremented from one tab, the change is synchronized to all other tabs.
 
@@ -134,7 +133,7 @@ document.getElementById('increment').addEventListener('click', () => {
 
 The content script injects an increment button and counter into each page. It subscribes to 'count' to receive all actions issued via net('count'). It specifies that the background page should execute the COUNT action on connection. It declares a single action, NEW_COUNT, which updates the displayed count with the given count.  It then adds a listener to the increment button that sends an INCREMENT message to the background page (through the pre-defined target 1).
 
-# [install]: Install
+# Install
 
 ```
 npm install --save mosi
@@ -157,7 +156,7 @@ msg(1, 'HELLO');
 Your extension will not work if you import from the wrong module.
 Currently, Mosi requires an es6 environment and a module bundler with support for es6 import/export syntax like Webpack 2. See any of the examples in the test-extension directory, or check out [Saka Key](https://github.com/lusakasa/saka-key) to see how Mosi is used in a real extension.
 
-# [api]: Detailed API
+# API Details
 
 The following functions are provided by each package:
 
@@ -296,7 +295,7 @@ function loadClient (_, src) {
 };
 ```
 
-# [limits]: Considerations and Limitations
+# Limitations
 
 1. Mosi introduces a little overhead. If raw performance is your number one goal, use the stock messaging apis.
 2. Mosi requires the core be a persistent background page in its current implementation. A plan for an event page version is in the works.
@@ -306,7 +305,7 @@ function loadClient (_, src) {
 
 Note that Mosi has not been optimized for performance and there is significant leeway to improve it. 
 
-# [contributing]: Contributing
+# Contributing
 
 All contributions welcome.
 
