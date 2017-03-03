@@ -279,9 +279,12 @@ result[0].e
     tabId: tabId,
     // https://developer.chrome.com/extensions/runtime#type-MessageSender
     sender: MessageSender,
-    subs: [subscriptions]
+    subs: [subscriptions],
+    data: { custom properties }
   };
   ```
+
+If you want to associate data with a connection, add it to the `data` property, which is intialized to an empty object. This data will be persistent for the lifetime of the connection. All other propeties are read only.
 
 This following action handler function `loadClient` shows how a background page uses meta to query the tabId and fameId of a node so it can dynamically insert a script into that node.
 

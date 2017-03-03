@@ -10,6 +10,7 @@ interface Connection {
   closed?: boolean;
   transactions: Transactions;
   sender: chrome.runtime.MessageSender;
+  data: any;
 }
 
 class Connections {
@@ -26,7 +27,7 @@ class Connections {
     /** client ids start at 2: 0 refers to self, 1 refers to core */
     const id = this.nextId++;
     const transactions = new Transactions();
-    const connection = { port, id, subs, onDisconnect, tabId, frameId, transactions, sender };
+    const connection = { port, id, subs, onDisconnect, tabId, frameId, transactions, sender, data: {} };
     this.connectionsByPort.set(port, connection);
     this.connectionsById.set(id, connection);
     return id;
@@ -51,7 +52,7 @@ class Connections {
     const frameId = sender.frameId;
     const id = this.nextId++;
     const transactions = new Transactions();
-    const connection = { id, subs: [], onDisconnect: [], tabId, frameId, transactions, sender };
+    const connection = { id, subs: [], onDisconnect: [], tabId, frameId, transactions, sender, data: {} };
     this.connectionsById.set(id, connection);
     await callback(id);
     this.connectionsById.delete(id);
@@ -274,7 +275,8 @@ class Core extends Node {
         frameId: connection.frameId,
         tabId: connection.tabId,
         sender: connection.sender,
-        subs: connection.subs
+        subs: connection.subs,
+        data: connection.data
       };
     }
     return undefined;
