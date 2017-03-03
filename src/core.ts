@@ -32,7 +32,16 @@ class Connections {
     return id;
   }
   remove = (port: chrome.runtime.Port): void => {
-    this.connectionsById.delete((<Connection> this.connectionsByPort.get(port)).id);
+    const connection = <Connection> this.connectionsByPort.get(port);
+    // This code will clean up a connections transactions on removal, consider adding it back
+    // instead of relying on timeouts.
+    // const transactions = connection.transactions.transactions;
+    // for (const tid in transactions) {
+    //     if (transactions.hasOwnProperty(tid)) {
+    //       connection.transactions.delete(tid);
+    //     }
+    // }
+    this.connectionsById.delete(connection.id);
     this.connectionsByPort.delete(port);
   }
   /** execute callback in context of a temporary connection, used for light-client */
@@ -240,19 +249,21 @@ class Core extends Node {
       case 'get':
         this._get(src, dst, action, arg).then((result) => {
           port.postMessage({ t: 'rsp', res: result, tid});
+        }).catch((e) => {
+          port.postMessage({ t: 'rsp', res: { e }, tid });
         });
         break;
       case 'rsp':
         const connection = this.connections.getByPort(port);
         if (connection) {
           connection.transactions.complete(<number> tid, res);
-        } else {
-          console.error('ERROR SILLY PORT')
         }
+        // the code may get here if a transaction is received over a connection
+        // that subsequently closed. Do nothing, a timeout will trigger the
+        // reject handler automatically.
         break;
       default:
-        console.error(`ERROR: Invalid message class: ${t}`);
-        break;
+        throw Error(`Invalid message class: ${t}`);
     }
   }
 

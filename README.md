@@ -1,31 +1,89 @@
 # Mosi
 
-Mosi is a library that simplifies Chrome extension messaging. No more setting up connections, sending messages and attaching listeners. Mosi makes communication organized and intuitive through a declarative, event-driven, pub/sub API.
+Mosi is a minimal javascript library that simplifies Chrome extension messaging. No more setting up connections, sending messages and attaching listeners. Mosi makes communication organized and intuitive through a declarative, event-driven, pub/sub API.
 
-# Warning
-
-This library is still being developed. Some features work. Others don't. This Readme documents what the library should do. It doesn't actually do it all yet.
+Check out [Saka Key](https://github.com/lusakasa/saka-key) to see how Mosi is used in a real extension.
 
 # Index
 
-* [Quick Example - A Counter Extension]()
-* [Install]()
-* [API]()
-* [Examples]()
-* [Considerations and Limitations]()
-* [Contributing]()
+* [Brief API] (brief api)
+* [Quick Example - A Counter Extension](example)
+* [Install](install)
+* [API](api)
+* [Examples](examples)
+* [Considerations and Limitations](limits)
+* [Contributing](contributing)
 
+# [brief api]: API Overview
 
-# Quick Example - A Counter Extension
+## init - intializes a node for messaging
 
-This is the source code for an extension that displays a count on every tab. The count starts at 0 and can be incremented by pressing a button. All tabs share the same count so that when the count is incremented from one tab, the change is synchronized to all other tabs.
+```javascript
+init({
+  // which messages it subscribes to
+  subscriptions: [string],
+
+  // actions to execute once the node is connected
+  onConnect: [{action: string, arg: any}],
+
+  // actions to execute when the node disconnects
+  onDisconnect: [{action: string, arg: any}}],
+
+  // action handlers to execute when a message is received
+  actions: {
+    action1: (arg, src) => { doSomething(arg, src); },
+    action2: (arg, src) => { doSomething(arg, src); },
+    ...
+  }
+});
+```
+
+## msg - sends a message to target node(s)
+
+```javascript
+msg(
+  // the node(s) that should receive the message
+  target,
+  
+  // specifies which action handler will be called by receivers
+  action,
+  
+  // the argument to be passed to the action handlers
+  arg
+);
+```
+
+## get - sends a message to target node(s) and receives the reponse
+
+```javascript
+// get returns a promise of an array of results
+const result = await get(
+  // the node(s) that should receive the message
+  target,
+  
+  // specifies which action handler will be called by receivers
+  action,
+  
+  // the argument to be passed to the action handlers
+  arg
+);
+
+// the value returned by the action handler
+result[0].v
+// the error reported on the target node
+result[0].e
+```
+
+# [example]: Quick Example - A Counter Extension
+
+This is [code](./test-extensions/counter) for an extension that displays a count on every tab. The count starts at 0 and can be incremented by pressing a button. All tabs share the same count so that when the count is incremented from one tab, the change is synchronized to all other tabs.
 
 ![counter image](docs/counter.png)
 
 ## background_page.js
 
 ```javascript
-import { init, net, src } from 'mosi/bp';
+import { init, msg } from 'mosi/core';
 
 let count = 0;
 
@@ -33,10 +91,10 @@ init({
   actions: {
     INCREMENT: (increment = 1) => {
       count += increment;
-      net('count').msg('NEW_COUNT', count);
+      msg('count', 'NEW_COUNT', count);
     },
-    COUNT: () => {
-      net(src()).msg('NEW_COUNT', count);
+    COUNT: (_, src) => {
+      msg(src, 'NEW_COUNT', count);
     }
   }
 });
@@ -51,7 +109,7 @@ If COUNT is triggered, it sends a message to the source node that issued COUNT w
 ## content_script.js
 
 ```javascript
-import { init, net } from 'mosi/cs';
+import { init, msg } from 'mosi/client';
 
 // Inject Counter GUI into topright of page
 const counter = document.createElement('div');
@@ -60,8 +118,8 @@ counter.innerHTML = '<button id="increment">Increment</button><input id="count" 
 document.body.appendChild(counter);
 
 init({
-  subscriptions: ['count']
-  onConnect: [{ action: 'COUNT' }]
+  subscriptions: ['count'],
+  onConnect: [{ action: 'COUNT' }],
   actions: {
     NEW_COUNT: (count) => {
       document.getElementById('count').value = count;
@@ -69,20 +127,14 @@ init({
   }
 });
 
-// Add Click listener to increment count
 document.getElementById('increment').addEventListener('click', () => {
-  net('bp').msg('INCREMENT');
+  msg(1, 'INCREMENT');
 });
 ```
 
-The content script injects an increment button and counter into each page. It subscribes to 'count' to receive all actions issued via net('count'). It specifies that the background page should execute the COUNT action on connection. It declares a single action, NEW_COUNT, which updates the displayed count with the given count.  It then adds a listener to the increment button that sends an INCREMENT message to the background page.
+The content script injects an increment button and counter into each page. It subscribes to 'count' to receive all actions issued via net('count'). It specifies that the background page should execute the COUNT action on connection. It declares a single action, NEW_COUNT, which updates the displayed count with the given count.  It then adds a listener to the increment button that sends an INCREMENT message to the background page (through the pre-defined target 1).
 
-Targeting the background page with net('bp') is possible because the background page automatically subscribes to 'bp'. Similarly, content scripts automatically subscribe to 'cs'. Although it would have been possible to use net('cs') to send count information, using an explicit 'count' subscription makes it easy to add new targets like the popup or a devtool.
-
-# Install
-
-## Option 1. NPM
-
+# [install]: Install
 
 ```
 npm install --save mosi
@@ -90,171 +142,171 @@ npm install --save mosi
 
 This exposes the following modules:
 
-* mosi/bp - background page
-* mosi/cs - content scripts
-* mosi/dt - devtools
-* mosi/ep - extension pages, e.g. settings or custom pages
+* mosi/core - run on the background page. Buses messages between clients.
+* mosi/client - run on clients nodes. Can be anything from content scripts, to popups, to devtools.
+* mosi/light-client - run this if you need msg() and NOTHING else. Very small.
 
 You can then import from the appropriate module.
 
 ```javascript
-import { init, net } from 'mosi/dt';
+import { init, net } from 'mosi/core';
 init({ actions: { NADA: () => {} } });
-net('bp').msg('HELLO');
+msg(1, 'HELLO');
 ```
 
-Your extension will not work if you import from the wrong module, e.g. import mosi/bp from a content script.
+Your extension will not work if you import from the wrong module.
+Currently, Mosi requires an es6 environment and a module bundler with support for es6 import/export syntax like Webpack 2. See any of the examples in the test-extension directory, or check out [Saka Key](https://github.com/lusakasa/saka-key) to see how Mosi is used in a real extension.
 
-## Option 2. Pre-compiled .js files
+# [api]: Detailed API
 
-Download the pre-compiled files from this repo's dist directory. Make sure to attach the correct bundle in your manifest.json.
+The following functions are provided by each package:
 
-* mosi.bp.js - background page
-* mosi.cs.js - content scripts
-* mosi.dt.js - devtools
-* mosi.ep.js - extension pages, e.g. settings or custom pages
+* mosi/core:          init, msg, get, meta
+* mosi/client:        init, msg, get
+* mosi/light-client:        msg
 
-You can then make calls through the mosi object.
+
+## init - intializes a node for messaging
+
+`init` initializes a node for messaging, and in the case of a client node, connects it to the core. It must be called before any calls to msg() or get(). It accepts a configuration object with properties `subscriptions`, `onConnect`, `onDisconnect`, and `actions`. All properties are optional.
+
+* `subscriptions` is an array of string specifying a node's subscriptions. This is how a node declares to the world it wants to receive all messages for a given subscription. When sending a message using `msg` or `get` from any node, you can specify a subscription as the target, and all nodes that have the target subscription will receive the message.
+
+* `onConnect` is an array of actions descriptors that the core executes as soon as a client node is connected. Every action descriptor is an object that must have an `action` property corresponding to the type of action to execute. The optional `arg` property 
+
+* `onDisconnect` is an array of action descriptors that the core executes as soon as it detects a client has disconnected.
+
+* `actions` is an object whose keys are action types and values are action handlers. An action handler is a function that is called a message is received. All calls to `msg` and `get` must specify the name of the action to be executed. If a client receives a message for an action type it doesn't have a handler for, it throws an error. The first argument of an action handler is the `arg` specified by the call to `msg` or `get` by the sending node. The second argument is the `src` node identifier, which is an integer. You can send a response back to the message source from a handler by calling `msg` or `get` and specifying `src` as the target. The value returned by an action handler is the result returned to calls to `get`.
+
+* `subscriptions` - a node's subscription
 
 ```javascript
-mosi.init(actions, subscriptions);
-mosi.net('bp').msg('HELLO');
+init({
+  // which messages it subscribes to
+  subscriptions: [string],
+
+  // actions to execute once the node is connected
+  onConnect: [{action: string, arg: any}],
+
+  // actions to execute when the node disconnects
+  onDisconnect: [{action: string}],
+
+  // action handlers to execute when a message is received
+  actions: {
+    action1: (arg, src) => { doSomething(arg, src); },
+    action2: (arg, src) => { doSomething(arg, src); },
+    ...
+  }
+});
 ```
 
-Your extension will not work if you bundle the wrong .js file in your manifest.json, e.g. include mosi.bp.js instead of mosi.cs.js in your content scripts.
+## msg - sends a message to target node(s)
 
-# Targets
+`msg` sends a message to target node(s). Specify the `target` node(s) that will receive the message and the name of the `action` handler that targets execute when they receive the message. Optionaly specify an `argument` to be passed to the action handler.
 
-Example targets
-* src
-* self
-* - currentTab
-* - otherTabs
-* subscriptions
-* tab[#]
-* tab[#].frame[#]
-* tab[#].topFrame
-* tab[#].childFrames
-* subcription.topFrame
-* sub1;sub2.topFrame
-* sub1;bp;dt
+  * `target` describes the nodes that should receive a message. `target` may be an integer that identifies a single node, or a condition string that limits which nodes receive the message. 
+  
+    * Integer Targets:
 
-# predicates can be attached to subscriptions
-* meow - always subscribe to meow
-* meow.topFrame - only subscribe to meow if this is the top frame
-* meow.childFrames - only subscribe to meow if this is not the top frame
+      * 0 is reserved for identifying the current node and is used to execute actions locally.
+      1 is reserved for messaging the core.
+      * All other nodes are assigned a globally unique integer identifying them.
+      * The `src` node id is available as the second argument of all action handlers to make replying to messages easy.
 
-# API
+    * String Targets 
 
-Mosi exports three functions: `init`, `net` and `src`. This documentation needs updating.
+      * A string target specifies conditions that must be specified for a node to receive a message. The most common type of condition is a subscription - only nodes with a given subscription receive a message.
 
-## init
+      * Other conditions take the form of selectors like only 'only nodes in the tab with id 4' or 'only nodes in frames with id 0.'  Conditions can be cominbined with '&' so that 'a&b' means a node will only receive a message if it meets both conditions 'a' and 'b'. Conditions can also be combined with '|' so that 'a|b' means a node will receive a message if it meets either condition 'a' or 'b'. & has higher precedence than |.
+      
+      * Examle target strings:
 
-```
-(config: {
-  subscriptions?: string[];
-  onConnect?: ActionDetails[];
-  onDisconnect?: ActionDetails[];
-  actions: { [key: string]: Action };
-}) => void;
-```
+        * `'onlyCoolMessages'` - only nodes subscribing to 'onlyCoolMessages'
+        * `'tab[1]'` - only nodes in tab with id 1
+        * `'tab[3]&frame[2]'` - only the node in tab id 3 and frame id 2
+        * `'tab[2]&topFrame'` - only the node in tab id 2 in the top frame
+        * `'tab[5]&childFrames'` - all nodes in tab id 5 that aren't the top node
+        * `'cats&topFrame&tab[3]'` - only nodes subscribing to cat that are in the top frame and in tab id 3
+        * `'dog|food&topFrame'` - nodes that subscribe to dog or (subscribe to food and are in the top frame)
+        * `'rats|lions|zebras'` - nodes that subscribe to rats or lions or zebras
+  
+  * `action` is a string corresponding to the name of the action handler to be executed by target nodes. Target nodes that don't have a handler for the specified action will throw errors.
 
-* `actions` - the actions the node exposes
-* `subscriptions` - a node's subscriptions
-
-Initializes Mosi with the given actions and subscriptions. No messages can be sent or received until `init` is called. After initialization, a node will receive any message targeting any of its subscriptions. This message will be handled by the appropriate action. If a matching action does not exist, the node logs an error to the console.
-
-### Actions
-
-```
-(src: string) => {
-  [key: string]: (arg?: any) => void
-}
-```
-
-Actions declares the actions to be executed when a message is received. It is structured as a function that accepts a src string, where src refers to the node that issued the action, and returns an object whose members are functions that can be called when messages are received.
-
-In the counter example, `net('bp').msg('COUNT')` is used to fetch the starting value of count from the background page. The background page handles the request using the action `COUNT: () => { net(src).msg('NEW_COUNT', count); }`, which is able to send a response back to the correct content script using the src string. 
-
-### Subscriptions
-
-```
-string[]
-```
-
-A node's subscriptions declare that it should get a message whenever a message is sent to one if its subscriptions.
-
-Note that every node is initialized with a default subscription corresponding to its class, e.g. the background page is initialized with subscription 'bp' and content scripts are initialized with subscription 'cs'. Manually subscribing to any default subscription is an  error.
-
-Default subscriptions:
-* `'bp'` - background page
-* `'cs'` - content scripts
-* `'ep'` - extension page
-* `'dt'` - devtool
-* `'popup'` - popup
-* ... suggest other targets in an issue or submit a pull request
-
-## net
-
-```
-(dst: string) => Communicator
-(dst: Object) => Communicator // in progress
-```
-
-*  dst - the destination to which any 
-
-The dst argument can be one of
-* `src` - available only with the action's declaration, the node that triggered the action
-* `'self'` - the local node, use this to execute actions locally
-* A subscription
-
-The net function's only argument is the destination. The destination can be either a subscription string or a Target Object.
-
-net('some_subscription') - Targets all nodes that have declared the subscription, including the source node if it has declared the subscription. A single message is sent to the background page, which then sends the messages to all subscribed nodes.
-
-The net function's only argument is the target. The target can a built-in target or a subscription group. The built in target groups are:
-
-### Communicator
-
-```
-{
-  msg: (type: string, arg?: any) => void,
-  get: (type: string, arg?: any) => Promise<any[]> // in progress
-}
-```
-
-#### msg
-
-msg sends a message to the target group. The user supplies an action and an optional argument to send to the target group. The receiving nodes of the target group must contain handlers for the specified action. Under the hood, msg works by sending a single message to every node of the target group.
-
-#### get
-
-get is like msg, except it returns a value. Specifically, it returns a Promise on the value returned by the specified action. Because a target comprises multiple nodes, the promise value is acually a list of values, one for each target node.
+  * `arg` is an optional argument to be passed to the action handler of target nodes. If you want to pass multiple arguments, simply package them as properties of a single object, e.g. `msg(1, 'COOORDINATES', { x, y });`.
 
 ```javascript
-const [count] = await net("bp").get("COUNT");
+msg(
+  // the node(s) that should receive the message
+  target,
+  
+  // specifies which action handler will be called by receivers
+  action,
+  
+  // the argument to be passed to the action handlers
+  arg
+);
 ```
 
-## connect and disconnect
+## get - sends a message to target node(s) and receives the reponse
 
-By default, calling init connects the node to the network. You can, however, suppress automatic connections by specifying `connect: false` in the initialization object. You can then manually connect by calling connect() and disconnect by calling disconnect().
+`get` sends a message to target node(s) and returns a promise for an array of responses from every messaged node. The arguments of `get` are identical to the arguments of `msg`, A response is an object which will have exactly one of two properties: `v` and `e`. `v` is short for value, which will be set to the value returned by the target node's action handler. `e` is short for error, and will be set if something went wrong retreiving the response.
 
-# Examples
+```javascript
+// get returns a promise of an array of results
+const result = await get(
+  // the node(s) that should receive the message
+  target,
+  
+  // specifies which action handler will be called by receivers
+  action,
+  
+  // the argument to be passed to the action handlers
+  arg
+);
 
-* [Counter]()
-* and more...
+// the value returned by the action handler
+result[0].v
+// the error reported on the target node
+result[0].e
+```
 
-# Considerations and Limitations
+## meta - given a node id, returns basic information about it
 
-1. Mosi emphasizes ease-of-use over performance. It's magical API requires serious work under the hood. See benchmark [fill in].
-2. Mosi requires a persistent background page. An non-persistent background page, aka an event page, won't work.
+`meta` is a function that takes a node id as its only argument. It returns basic information about that node. `meta`  is only available on the core node, not on client nodes. `meta` returns an object of the form:
+
+  ```javascript
+  {
+    frameId: frameId,
+    tabId: tabId,
+    // https://developer.chrome.com/extensions/runtime#type-MessageSender
+    sender: MessageSender,
+    subs: [subscriptions]
+  };
+  ```
+
+This following action handler function `loadClient` shows how a background page uses meta to query the tabId and fameId of a node so it can dynamically insert a script into that node.
+
+```javascript
+function loadClient (_, src) {
+  const { frameId, tabId } = meta(src);
+  chrome.tabs.executeScript(tabId, {
+    file: 'content_script.js',
+    frameId,
+  });
+};
+```
+
+# [limits]: Considerations and Limitations
+
+1. Mosi introduces a little overhead. If raw performance is your number one goal, use the stock messaging apis.
+2. Mosi requires the core be a persistent background page in its current implementation. A plan for an event page version is in the works.
 3. Mosi uses a star architecture in which all messages are sent to the background page, which then forwards the message to all subscribed nodes.
-4. Mosi uses es6 features directly with no precompilation because it is designed for Chrome Extensions, and Chrome supports es6.
+4. Mosi uses es6 features directly with no precompilation because it is designed for Chrome Extensions, and Chrome supports es6. You still need an es6 module bundler like Webpack 2.
 5. Mosi is awesome.
 
 Note that Mosi has not been optimized for performance and there is significant leeway to improve it. 
 
-# Contributing
+# [contributing]: Contributing
 
 All contributions welcome.
 

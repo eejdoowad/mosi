@@ -45,7 +45,7 @@ export class Transactions {
       reject(`Transaction ${tid} timed out.`);
     }, this.timeout);
     this.transactions[tid] = { resolve, reject, timer}
-    return tid
+    return tid;
   }
   delete = (tid: number) => {
     clearTimeout(this.transactions[tid].timer);
@@ -69,10 +69,8 @@ export abstract class Node {
   abstract messageListener: ({ src, dst, t, action, arg }: Message, port: chrome.runtime.Port) => void;
 
   actionHandler = (action: string, arg: any, src: number) => {
-    const handler = this.actions[action] || this.errorHandler(action);
-    return handler(arg, src);
-  }
-  errorHandler = (action: string) => (arg: any) => {
-    console.error(`ERROR: No action type ${action}`);
+    const handler = this.actions[action];
+    if (handler) return handler(arg, src);
+    throw Error(`No handler for action ${action}`);
   }
 }

@@ -8,7 +8,7 @@ init({
       count += increment;
       msg('count', 'NEW_COUNT', count);
     },
-    COUNT: (__, src) => {
+    COUNT: (_, src) => {
       msg(src, 'NEW_COUNT', count);
     }
   }

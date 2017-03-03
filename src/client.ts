@@ -23,7 +23,7 @@ class Client extends Node {
    */
   msg = (dst: Destination, action: string, arg: any): void => {
     if (dst === 0) { // TODO: support .unique also
-      this.actionHandler(action)(arg, 0);
+      this.actionHandler(action, arg, 0);
     } else {
       this.port.postMessage({t: 'msg', dst, action, arg });
     }
@@ -31,7 +31,7 @@ class Client extends Node {
 
   _getLocal = async (localId: number, src: number, action: string, arg: any): Promise<GetResult> => {
     try {
-      return { id: localId, v: await this.actionHandler(action)(arg, src) };
+      return { id: localId, v: await this.actionHandler(action, arg, src) };
     } catch(error) {
       return { id: localId, e: error };
     }
@@ -68,11 +68,13 @@ class Client extends Node {
   messageListener = ({ src, dst, t, action, arg, tid, res }: Message) => {
     switch (t) {
       case 'msg':
-        this.actionHandler(action)(arg, <number> src);
+        this.actionHandler(action, arg, <number> src);
         break;
       case 'get':
         this._getLocal(<number> dst, <number> src, action, arg).then((res) => {
           this.port.postMessage({ t: 'rsp', src: dst, dst: src, tid, res });
+        }).catch((e) => {
+          this.port.postMessage({ t: 'rsp', res: { e }, tid });
         });
         break;
       case 'rsp':
@@ -82,12 +84,6 @@ class Client extends Node {
         console.error(`ERROR: Invalid message class: ${t}`);
         break;
     }
-  }
-
-  actionHandler = (action: string): Action =>
-    this.actions[action] || this.errorHandler(action);
-  errorHandler = (action: string) => (arg: any) => {
-    console.error(`ERROR: No action type ${action}`);
   }
 }
 
