@@ -162,8 +162,8 @@ class Core extends Node {
     /** Returns true if the given connection is part of the destination, else false */
     const predicate = (connection: Connection): boolean => {
       if (connection.closed) return false;
-      for (const subDst of dst.split(';')) {
-        const allConditionsMet = subDst.split('.').map<boolean>((condition) => {
+      for (const subDst of dst.split('|')) {
+        const allConditionsMet = subDst.split('&').map<boolean>((condition) => {
           if (connection.subs.includes(condition)) {
             return true;
           }
