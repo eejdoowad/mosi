@@ -1,8 +1,9 @@
-import { init, msg, meta } from 'mosi/core';
+import { init, msg, meta } from '../../../core';
 
 let global_links = 0;
 
 init({
+  log: true,
   actions: {
     NEW_PAGE: (links, src) => {
       meta(src).data.links = links;

@@ -64,11 +64,13 @@ class Connections {
 class Core extends Node {
 
   connections = new Connections();
+  log: boolean;
 
   constructor () {
     super();
     /** adds a listener for light-client messages */
     chrome.runtime.onMessage.addListener(({ mosi_lw_msg, dst, action, arg }, sender) => {
+      if (this.log) console.log(`Rx(lw_client -> ${dst}): msg[${action}], arg=`, arg);
       if (mosi_lw_msg) {
         this.connections.withTmpConnection(sender, async (connectionId: number) => {
           await this._msg(connectionId, dst, action, arg);
@@ -86,7 +88,8 @@ class Core extends Node {
    * 5. Maintain information about itself.
    * 6. Maintain information about active connections.
    */
-  init = ({ subscriptions = [], onConnect = [], onDisconnect = [], actions }: Config) => {
+  init = ({ subscriptions = [], onConnect = [], onDisconnect = [], actions, log = false }: Config) => {
+    this.log = log;
     this.subscriptions = subscriptions;
     this.actions = actions;
     chrome.runtime.onConnect.addListener((port) => {
@@ -140,7 +143,8 @@ class Core extends Node {
     if (targetSelf) this.actionHandler(action, arg, src);
     targets.forEach(({port}) => {
       if (port) {
-        port.postMessage({ src, dst, t: 'msg', action, arg });
+        if (this.log) console.log(`Tx(${src} -> ${dst}): msg[${action}], arg=`, arg);
+        port.postMessage({ t: 'msg', src, dst, action, arg });
       } else {
         throw Error('No messaging light-clients');
       }
@@ -204,6 +208,7 @@ class Core extends Node {
     return new Promise<GetResult>((resolve, reject) => {
       const tid = connection.transactions.new(resolve, reject);
       if (connection.port) {
+        if (this.log) console.log(`Tx(${src} -> ${dst}): get{${tid}}[${action}], arg=`, arg);
         connection.port.postMessage({ t: 'get', src, dst, action,  arg, tid });
       } else {
         throw Error('No messaging light-clients');
@@ -245,16 +250,21 @@ class Core extends Node {
     if (src === undefined) src = (<Connection> this.connections.getByPort(port)).id;
     switch (t) {
       case 'msg':
+        if (this.log) console.log(`Rx(${src} -> ${dst}): msg[${action}], arg=`, arg);
         this._msg(src, dst, action, arg);
         break;
       case 'get':
+        if (this.log) console.log(`Rx(${src} -> ${dst}): get{${tid}}[${action}], arg=`, arg);
         this._get(src, dst, action, arg).then((result) => {
-          port.postMessage({ t: 'rsp', res: result, tid});
+          if (this.log) console.log(`Tx(${dst} -> ${src}): rsp{${tid}}[${action}], res=`, result);
+          port.postMessage({ t: 'rsp', src: dst, dst: src, action, res: result, tid });
         }).catch((e) => {
-          port.postMessage({ t: 'rsp', res: { e }, tid });
+          if (this.log) console.log(`Tx(${dst} -> ${src}): rsp{${tid}}[${action}], err=`, { e });
+          port.postMessage({ t: 'rsp', src: dst, dst: src, action, res: { e }, tid });
         });
         break;
       case 'rsp':
+        if (this.log) console.log(`Rx(${src} -> ${dst}): rsp{${tid}}[${action}], arg=`, arg);
         const connection = this.connections.getByPort(port);
         if (connection) {
           connection.transactions.complete(<number> tid, res);

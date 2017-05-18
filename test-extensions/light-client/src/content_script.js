@@ -1,4 +1,4 @@
-import { msg } from 'mosi/light-client';
+import { msg } from '../../../light-client';
 
 // Inject Counter GUI into topright of page
 const counter = document.createElement('div');

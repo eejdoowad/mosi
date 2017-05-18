@@ -11,7 +11,5 @@
     "rimraf": "^2.5.4",
     "webpack": "^2.2.0-rc.3"
   },
-  "dependencies": {
-    "mosi": "latest"
-  }
+  "dependencies": {}
 }

@@ -5,8 +5,10 @@ class Client extends Node {
   port: chrome.runtime.Port;
   timeout = 1000;
   transactions = new Transactions();
+  log: boolean;
 
-  init = ({ subscriptions = [], onConnect = [], onDisconnect = [], actions }: Config) => {
+  init = ({ subscriptions = [], onConnect = [], onDisconnect = [], actions, log = false }: Config) => {
+    this.log = log;
     this.subscriptions = subscriptions;
     this.actions = actions;
     const connectionInfo = { subs: this.subscriptions, onConnect, onDisconnect };
@@ -25,6 +27,7 @@ class Client extends Node {
     if (dst === 0) { // TODO: support .unique also
       this.actionHandler(action, arg, 0);
     } else {
+      if (this.log) console.log(`Tx(${dst}): msg[${action}], arg=`, arg);
       this.port.postMessage({t: 'msg', dst, action, arg });
     }
   }
@@ -40,6 +43,7 @@ class Client extends Node {
   _getRemote = (dst: Destination, action: string, arg: any): Promise<any[]> =>
     new Promise<GetResult[]>((resolve, reject) => {
       const tid = this.transactions.new(resolve, reject);
+      if (this.log) console.log(`Tx(${dst}): get{${tid}}[${action}], arg=`, arg);
       this.port.postMessage({t: 'get', dst, action, arg, tid });
     });
   
@@ -55,7 +59,7 @@ class Client extends Node {
   }
 
   disconnectListener = (port: chrome.runtime.Port): void => {
-    console.error('ERROR. The port to the background page has closed.');
+    console.error('ERROR. The port to the background page has closed.', chrome.runtime.lastError || '');
   }
 
   /**
@@ -68,16 +72,21 @@ class Client extends Node {
   messageListener = ({ src, dst, t, action, arg, tid, res }: Message) => {
     switch (t) {
       case 'msg':
+        if (this.log) console.log(`Rx(${src}): msg[${action}], arg=`, arg);
         this.actionHandler(action, arg, <number> src);
         break;
       case 'get':
+        if (this.log) console.log(`Rx(${src}): get{${tid}}[${action}], arg=`, arg);
         this._getLocal(<number> dst, <number> src, action, arg).then((res) => {
-          this.port.postMessage({ t: 'rsp', src: dst, dst: src, tid, res });
+          if (this.log) console.log(`Tx(${src}): rsp{${tid}}[${action}], res=`, res);
+          this.port.postMessage({ t: 'rsp', src: dst, dst: src, action, tid, res });
         }).catch((e) => {
-          this.port.postMessage({ t: 'rsp', res: { e }, tid });
+          if (this.log) console.log(`Tx(${src}): rsp{${tid}}[${action}], err=`, res);
+          this.port.postMessage({ t: 'rsp', src: dst, dst: src, action, tid, res: { e } });
         });
         break;
       case 'rsp':
+        if (this.log) console.log(`Rx(${src}): rsp{${tid}}[${action}], res= `, res);
         this.transactions.complete(<number> tid, res);
         break;
       default:
@@ -86,7 +95,6 @@ class Client extends Node {
     }
   }
 }
-
 
 const node = new Client();
 const init = node.init;

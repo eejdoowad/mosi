@@ -1,7 +1,8 @@
-import { con, init } from 'mosi/core';
+import { meta, init } from '../../../core';
 
 init({
+  log: true,
   actions: {
-    FRAME: (arg, src) => con(src).frameId
+    FRAME: (arg, src) => meta(src).frameId
   }
 });

@@ -1,4 +1,4 @@
-import { init, msg } from 'mosi/client';
+import { init, msg } from '../../../client';
 
 // Inject Counter GUI into topright of page
 const counter = document.createElement('div');
@@ -7,6 +7,7 @@ counter.innerHTML = '<button id="increment">Increment</button><input id="count" 
 document.body.appendChild(counter);
 
 init({
+  log: true,
   subscriptions: ['count'],
   onConnect: [{ action: 'COUNT' }],
   actions: {

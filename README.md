@@ -1,6 +1,6 @@
 # Mosi
 
-Mosi is a minimal javascript library that simplifies Chrome extension messaging. No more setting up connections, sending messages and attaching listeners. Mosi makes communication organized and intuitive through a declarative, event-driven, pub/sub API.
+Mosi is a minimal javascript library (written in Typescript) that simplifies Chrome extension messaging. Mosi makes communication organized and intuitive through a declarative, event-driven, pub/sub API with built-in logging.
 
 Check out [Saka Key](https://github.com/lusakasa/saka-key) to see how Mosi is used in a real extension.
 
@@ -19,6 +19,9 @@ Check out [Saka Key](https://github.com/lusakasa/saka-key) to see how Mosi is us
 
 ```javascript
 init({
+  // set log to true to enable logging
+  log: boolean
+
   // which messages it subscribes to
   subscriptions: [string],
 
@@ -52,7 +55,7 @@ msg(
 );
 ```
 
-## get - sends a message to target node(s) and receives the reponse
+## get - sends a message to target node(s) and receives the reponse(s)
 
 ```javascript
 // get returns a promise of an array of results
@@ -71,6 +74,8 @@ const result = await get(
 result[0].v
 // the error reported on the target node
 result[0].e
+// the id of the node
+result[0].id
 ```
 
 # Example
@@ -87,6 +92,7 @@ import { init, msg } from 'mosi/core';
 let count = 0;
 
 init({
+  log: true,
   actions: {
     INCREMENT: (increment = 1) => {
       count += increment;
@@ -117,6 +123,7 @@ counter.innerHTML = '<button id="increment">Increment</button><input id="count" 
 document.body.appendChild(counter);
 
 init({
+  log: true,
   subscriptions: ['count'],
   onConnect: [{ action: 'COUNT' }],
   actions: {
@@ -202,6 +209,8 @@ init({
 ## msg - sends a message to target node(s)
 
 `msg` sends a message to target node(s). Specify the `target` node(s) that will receive the message and the name of the `action` handler that targets execute when they receive the message. Optionaly specify an `argument` to be passed to the action handler.
+
+  * `log` is a boolean parameter that enables logging when set to `true`. Logging is disabled by default.
 
   * `target` describes the nodes that should receive a message. `target` may be an integer that identifies a single node, or a condition string that limits which nodes receive the message. 
   
@@ -304,7 +313,6 @@ function loadClient (_, src) {
 2. Mosi requires the core be a persistent background page in its current implementation. A plan for an event page version is in the works.
 3. Mosi uses a star architecture in which all messages are sent to the background page, which then forwards the message to all subscribed nodes.
 4. Mosi uses es6 features directly with no precompilation because it is designed for Chrome Extensions, and Chrome supports es6. You still need an es6 module bundler like Webpack 2.
-5. Mosi is awesome.
 
 Note that Mosi has not been optimized for performance and there is significant leeway to improve it. 
 

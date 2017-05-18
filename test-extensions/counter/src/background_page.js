@@ -1,8 +1,9 @@
-import { init, msg } from 'mosi/core';
+import { init, msg } from '../../../core';
 
 let count = 0;
 
 init({
+  log: true,
   actions: {
     INCREMENT: (increment = 1) => {
       count += increment;

@@ -2,6 +2,9 @@
   "name": "mosi local-get example",
   "version": "0.0",
   "description": "demonstrates local-get",
+  "background": {
+    "scripts": ["background_page.js"]
+  },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],

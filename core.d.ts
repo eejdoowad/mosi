@@ -1,33 +1,37 @@
-// interface Action {
-//     (arg?: any): void;
-// }
-// interface Communicator {
-//     msg(type: string, arg?: any): void;
-// }
-// export declare function init(actions: (src: string) => { [key: string]: Action }, subscriptions?: string[]): void;
-// export declare function net(dst: string): Communicator;
+type Action = (arg: any, src: number) => any;
 
-type Action = (arg: any) => void;
-
-interface ActionDetails {
+type ActionDetails = {
   action: string;
   arg?: any;
   dst?: string;
 }
 
-interface Config {
-  subscriptions?: string[];
-  onConnect?: ActionDetails[];
-  onDisconnect?: ActionDetails[];
-  actions: { [key: string]: Action };
+/** Initializes Mosi's messaging system */
+export declare function init(
+  config: {
+    log?: boolean;
+    subscriptions?: string[];
+    actions: { [key: string]: Action };
+    onConnect?: ActionDetails[];
+    onDisconnect?: ActionDetails[];
+  }
+): void;
+
+/** Message the target node(s) */
+export declare function msg(target: number | string, action: string, arg?: any): void;
+
+/** Message the target node(s) and fetches the response(s) */
+export declare function get(target: number | string, action: string, arg?: any): Promise<{
+  id: number
+  v?: any;
+  e?: any;
+}[]>;
+
+/** Returns information about a connection */
+export declare function meta(connectionId: number): {
+  frameId: number
+  tabId: number
+  sender: chrome.runtime.MessageSender,
+  subs: string[],
+  data: any
 }
-
-export declare function init(config: Config): void;
-
-interface Communicator {
-    msg(type: string, arg?: any): void;
-}
-
-export declare function net(dst: string): Communicator;
-
-export declare function src(): string;

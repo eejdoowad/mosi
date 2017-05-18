@@ -1,8 +1,9 @@
-import { init, msg } from 'mosi/core';
+import { init, msg } from '../../../core';
 
 let global_links = 0;
 
 init({
+  log: true,
   actions: {
     NEW_PAGE: (links) => {
       global_links += links;

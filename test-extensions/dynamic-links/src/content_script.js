@@ -1,4 +1,4 @@
-import { init, msg } from 'mosi/client';
+import { init, msg } from '../../../client';
 
 // Inject Counter GUI into topright of page
 const counter = document.createElement('div');
@@ -13,6 +13,7 @@ document.getElementById('local').value = localLinks;
 
 
 init({
+  log: true,
   subscriptions: ['links'],
   onConnect: [{ action: 'NEW_PAGE', arg: localLinks }],
   onDisconnect: [{ action: 'CLOSE_PAGE', arg: localLinks }],

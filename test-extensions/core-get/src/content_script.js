@@ -1,12 +1,12 @@
-import { init, get } from 'mosi/client';
+import { init, get } from '../../../client';
 
 // Inject Counter GUI into topright of page
 const counter = document.createElement('div');
 counter.setAttribute('style', 'z-index: 99999; position: fixed; top: 0; right: 0;');
-counter.innerHTML = '<button id="rbutton">Increment</button><input id="random" disabled/>';
+counter.innerHTML = '<button id="rbutton">Random</button><input id="random" disabled/>';
 document.body.appendChild(counter);
 
-init({});
+init({ log: true });
 
 const updateRandom = async () => {
   const [{v: rand}] = await get(1, 'RANDOM');
