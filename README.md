@@ -227,7 +227,7 @@ init({
 
       * Other conditions take the form of selectors like only 'only nodes in the tab with id 4' or 'only nodes in frames with id 0.'  Conditions can be cominbined with '&' so that 'a&b' means a node will only receive a message if it meets both conditions 'a' and 'b'. Conditions can also be combined with '|' so that 'a|b' means a node will receive a message if it meets either condition 'a' or 'b'. & has higher precedence than |.
 
-      * The reserved condtion strings are: `tab[N]`, `frame[N]`, `topFrame`, `childFrames`, `thisTab`, and `thisTabOtherFrames`
+      * The reserved condtion strings are: `tab[N]`, `frame[N]`, `topFrame`, `childFrames`, `thisTab`, and `otherFrames`
       
       * Examle target strings:
 
