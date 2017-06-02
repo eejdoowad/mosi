@@ -212,7 +212,6 @@ class Core extends Node {
     return new Promise<GetResult>((resolve, reject) => {
       const tid = connection.transactions.new(resolve, reject);
       if (connection.port) {
-        // if (this.log) console.log(`Tx(${src} -> ${dst}): get{${tid}}[${action}], arg=`, arg);
         this.log('Tx', 'get', src, connection.id, action, arg, tid);
         connection.port.postMessage({ t: 'get', src, dst: connection.id , action,  arg, tid });
       } else {
@@ -255,25 +254,20 @@ class Core extends Node {
     if (src === undefined) src = (<Connection> this.connections.getByPort(port)).id;
     switch (t) {
       case 'msg':
-        // if (this.log) console.log(`Rx(${src} -> ${dst}): msg[${action}], arg=`, arg);
         this.log('Rx', 'msg', src, dst, action, arg);
         this._msg(src, dst, action, arg);
         break;
       case 'get':
         this.log('Rx', 'get', src, dst, action, arg, tid);
-        // if (this.log) console.log(`Rx(${src} -> ${dst}): get{${tid}}[${action}], arg=`, arg);
         this._get(src, dst, action, arg).then((result) => {
           this.log('Tx', 'rsp', <number>src, dst, action, result, tid);
-          // if (this.log) console.log(`Tx(${dst} -> ${src}): rsp{${tid}}[${action}], res=`, result);
           port.postMessage({ t: 'rsp', src: dst, dst: src, action, res: result, tid });
         }).catch((e) => {
-          // if (this.log) console.log(`Tx(${dst} -> ${src}): rsp{${tid}}[${action}], err=`, { e });
           this.log('Tx', 'rsp', <number>src, dst, action, { e }, tid);
           port.postMessage({ t: 'rsp', src: dst, dst: src, action, res: { e }, tid });
         });
         break;
       case 'rsp':
-        // if (this.log) console.log(`Rx(${src} -> ${dst}): rsp{${tid}}[${action}], res=`, res);
           this.log('Rx', 'rsp', <number>src, dst, action, res, tid);
         const connection = this.connections.getByPort(port);
         if (connection) {
