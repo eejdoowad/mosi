@@ -226,6 +226,8 @@ init({
       * A string target specifies conditions that must be specified for a node to receive a message. The most common type of condition is a subscription - only nodes with a given subscription receive a message.
 
       * Other conditions take the form of selectors like only 'only nodes in the tab with id 4' or 'only nodes in frames with id 0.'  Conditions can be cominbined with '&' so that 'a&b' means a node will only receive a message if it meets both conditions 'a' and 'b'. Conditions can also be combined with '|' so that 'a|b' means a node will receive a message if it meets either condition 'a' or 'b'. & has higher precedence than |.
+
+      * The reserved condtion strings are: `tab[N]`, `frame[N]`, `topFrame`, `childFrames`, `thisTab`, and `thisTabOtherFrames`
       
       * Examle target strings:
 
@@ -237,6 +239,8 @@ init({
         * `'cats&topFrame&tab[3]'` - only nodes subscribing to cat that are in the top frame and in tab id 3
         * `'dog|food&topFrame'` - nodes that subscribe to dog or (subscribe to food and are in the top frame)
         * `'rats|lions|zebras'` - nodes that subscribe to rats or lions or zebras
+        * `thisTab` - all frames in the current tab
+        * `thisTab&otherFrames` - all frames in the current tab except the source frame, NOTE: `otherFrames` should always be used in conjunction with `thisTab`
   
   * `action` is a string corresponding to the name of the action handler to be executed by target nodes. Target nodes that don't have a handler for the specified action will throw errors.
 

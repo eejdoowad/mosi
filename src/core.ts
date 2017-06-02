@@ -107,7 +107,7 @@ class Core extends Node {
     });
   }
 
-  getTargets = (dst: Destination): [boolean, Connection[]] => {
+  getTargets = (src: number, dst: Destination): [boolean, Connection[]] => {
     let targetSelf = false;
     let targets: Connection[] = [];
     if (typeof dst === 'number') {
@@ -125,7 +125,7 @@ class Core extends Node {
       }
     } else if (typeof dst === 'string') {
       targetSelf = this.subscriptions.includes(dst);
-      targets = this.getStringTargets(dst);
+      targets = this.getStringTargets(src, dst);
     } else {
       console.error('ERROR: dst type is invalid');
     }
@@ -138,7 +138,7 @@ class Core extends Node {
    * TODO: CLEAN THIS UP
    */
   _msg = (src: number, dst: Destination, action: string, arg: any): void => {
-    const [targetSelf, targets] = this.getTargets(dst);
+    const [targetSelf, targets] = this.getTargets(src, dst);
     if (targetSelf) this.actionHandler(action, arg, src);
     targets.forEach(({port}) => {
       if (port) {
@@ -161,7 +161,7 @@ class Core extends Node {
  * getStringTargets should not include the local node as that is handled by a separate
  * local action handler.
  */
-  getStringTargets = (dst: string): Connection[] => {
+  getStringTargets = (src: number, dst: string): Connection[] => {
     /** Returns true if the given connection is part of the destination, else false */
     const predicate = (connection: Connection): boolean => {
       if (connection.closed) return false;
@@ -175,6 +175,12 @@ class Core extends Node {
           }
           if (condition === 'childFrames') {
             return connection.frameId !== 0;
+          }
+          if (condition === 'otherFrames') {
+            return connection.frameId !== (<Connection>this.connections.getById(src)).frameId;
+          }
+          if (condition === 'thisTab') {
+            return connection.tabId === (<Connection>this.connections.getById(src)).tabId;
           }
           const tabCondition = condition.match(/tab\[(\d+)\]/);
           if (tabCondition) {
@@ -216,7 +222,7 @@ class Core extends Node {
   }
 
   _get = async (src: number, dst: Destination, action: string, arg: any): Promise<GetResult[]> => {
-    const [targetSelf, targets] = this.getTargets(dst);
+    const [targetSelf, targets] = this.getTargets(src, dst);
     const localResult: Array<Promise<GetResult>> = (targetSelf)
       ? [this._getLocal(src, action, arg)]
       : [];
