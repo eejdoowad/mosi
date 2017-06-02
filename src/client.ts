@@ -5,10 +5,9 @@ class Client extends Node {
   port: chrome.runtime.Port;
   timeout = 1000;
   transactions = new Transactions();
-  log: boolean;
 
   init = ({ subscriptions = [], onConnect = [], onDisconnect = [], actions, log = false }: Config) => {
-    this.log = log;
+    this.initLogging(log);
     this.subscriptions = subscriptions;
     this.actions = actions;
     const connectionInfo = { subs: this.subscriptions, onConnect, onDisconnect };
@@ -27,7 +26,8 @@ class Client extends Node {
     if (dst === 0) { // TODO: support .unique also
       this.actionHandler(action, arg, 0);
     } else {
-      if (this.log) console.log(`Tx(${dst}): msg[${action}], arg=`, arg);
+      // if (this.log) console.log(`Tx(${dst}): msg[${action}], arg=`, arg);
+      this.log('Tx', 'msg', 0, dst, action, arg);
       this.port.postMessage({t: 'msg', dst, action, arg });
     }
   }
@@ -43,7 +43,8 @@ class Client extends Node {
   _getRemote = (dst: Destination, action: string, arg: any): Promise<any[]> =>
     new Promise<GetResult[]>((resolve, reject) => {
       const tid = this.transactions.new(resolve, reject);
-      if (this.log) console.log(`Tx(${dst}): get{${tid}}[${action}], arg=`, arg);
+      // if (this.log) console.log(`Tx(${dst}): get{${tid}}[${action}], arg=`, arg);
+      this.log('Tx', 'get', 0, dst, action, arg, tid);
       this.port.postMessage({t: 'get', dst, action, arg, tid });
     });
   
@@ -72,21 +73,26 @@ class Client extends Node {
   messageListener = ({ src, dst, t, action, arg, tid, res }: Message) => {
     switch (t) {
       case 'msg':
-        if (this.log) console.log(`Rx(${src}): msg[${action}], arg=`, arg);
+        // if (this.log) console.log(`Rx(${src}): msg[${action}], arg=`, arg);
+        this.log('Tx', 'msg', <number>src, dst, action, arg);
         this.actionHandler(action, arg, <number> src);
         break;
       case 'get':
-        if (this.log) console.log(`Rx(${src}): get{${tid}}[${action}], arg=`, arg);
+        // if (this.log) console.log(`Rx(${src}): get{${tid}}[${action}], arg=`, arg);
+        this.log('Rx', 'get', <number>src, dst, action, arg, tid);
         this._getLocal(<number> dst, <number> src, action, arg).then((res) => {
-          if (this.log) console.log(`Tx(${src}): rsp{${tid}}[${action}], res=`, res);
+          // if (this.log) console.log(`Tx(${src}): rsp{${tid}}[${action}], res=`, res);
+        this.log('Tx', 'rsp', <number>src, dst, action, res, tid);
           this.port.postMessage({ t: 'rsp', src: dst, dst: src, action, tid, res });
         }).catch((e) => {
-          if (this.log) console.log(`Tx(${src}): rsp{${tid}}[${action}], err=`, res);
+          // if (this.log) console.log(`Tx(${src}): rsp{${tid}}[${action}], err=`, res);
+          this.log('Tx', 'rsp', <number>src, dst, action, res, tid);
           this.port.postMessage({ t: 'rsp', src: dst, dst: src, action, tid, res: { e } });
         });
         break;
       case 'rsp':
-        if (this.log) console.log(`Rx(${src}): rsp{${tid}}[${action}], res= `, res);
+        // if (this.log) console.log(`Rx(${src}): rsp{${tid}}[${action}], res= `, res);
+        this.log('Rx', 'rsp', <number>src, dst, action, res, tid);
         this.transactions.complete(<number> tid, res);
         break;
       default:
