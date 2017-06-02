@@ -174,7 +174,9 @@ The following functions are provided by each package:
 
 ## init - intializes a node for messaging
 
-`init` initializes a node for messaging, and in the case of a client node, connects it to the core. It must be called before any calls to msg() or get(). It accepts a configuration object with properties `subscriptions`, `onConnect`, `onDisconnect`, and `actions`. All properties are optional.
+`init` initializes a node for messaging, and in the case of a client node, connects it to the core. It must be called before any calls to msg() or get(). It accepts a configuration object with properties `log`, `subscriptions`, `onConnect`, `onDisconnect`, and `actions`. All properties are optional.
+
+* `log` is a boolean parameter that enables logging when set to `true`. Logging is disabled by default.
 
 * `subscriptions` is an array of string specifying a node's subscriptions. This is how a node declares to the world it wants to receive all messages for a given subscription. When sending a message using `msg` or `get` from any node, you can specify a subscription as the target, and all nodes that have the target subscription will receive the message.
 
@@ -209,8 +211,6 @@ init({
 ## msg - sends a message to target node(s)
 
 `msg` sends a message to target node(s). Specify the `target` node(s) that will receive the message and the name of the `action` handler that targets execute when they receive the message. Optionaly specify an `argument` to be passed to the action handler.
-
-  * `log` is a boolean parameter that enables logging when set to `true`. Logging is disabled by default.
 
   * `target` describes the nodes that should receive a message. `target` may be an integer that identifies a single node, or a condition string that limits which nodes receive the message. 
   
