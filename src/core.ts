@@ -69,8 +69,8 @@ class Core extends Node {
     super();
     /** adds a listener for light-client messages */
     chrome.runtime.onMessage.addListener(({ mosi_lw_msg, dst, action, arg }, sender) => {
-      this.log('Rx', 'msg', 'lw_client', dst, action, arg);
       if (mosi_lw_msg) {
+        this.log('Rx', 'msg', 'lw_client', dst, action, arg);
         this.connections.withTmpConnection(sender, async (connectionId: number) => {
           await this._msg(connectionId, dst, action, arg);
         });
