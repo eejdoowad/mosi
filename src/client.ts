@@ -71,7 +71,7 @@ class Client extends Node {
   messageListener = ({ src, dst, t, action, arg, tid, res }: Message) => {
     switch (t) {
       case 'msg':
-        this.log('Tx', 'msg', <number>src, dst, action, arg);
+        this.log('Rx', 'msg', <number>src, dst, action, arg);
         this.actionHandler(action, arg, <number> src);
         break;
       case 'get':
