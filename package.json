@@ -27,7 +27,8 @@
     "light-client.js",
     "node.js",
     "core.d.ts",
-    "client.d.ts"
+    "client.d.ts",
+    "light-client.d.ts"
   ],
   "author": "eejdoowad <eejdoowad@gmail.com>",
   "license": "MIT",
