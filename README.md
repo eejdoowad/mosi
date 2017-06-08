@@ -227,7 +227,7 @@ init({
 
       * Other conditions take the form of selectors like only 'only nodes in the tab with id 4' or 'only nodes in frames with id 0.'  Conditions can be cominbined with '&' so that 'a&b' means a node will only receive a message if it meets both conditions 'a' and 'b'. Conditions can also be combined with '|' so that 'a|b' means a node will receive a message if it meets either condition 'a' or 'b'. & has higher precedence than |.
 
-      * The reserved condtion strings are: `tab[N]`, `frame[N]`, `topFrame`, `childFrames`, `thisTab`, and `otherFrames`
+      * The reserved condtion strings are: `tab[N]`, `frame[N]`, `id[N]`, `topFrame`, `childFrames`, `thisTab`, and `otherFrames`
       
       * Examle target strings:
 
@@ -236,6 +236,7 @@ init({
         * `'tab[3]&frame[2]'` - only the node in tab id 3 and frame id 2
         * `'tab[2]&topFrame'` - only the node in tab id 2 in the top frame
         * `'tab[5]&childFrames'` - all nodes in tab id 5 that aren't the top node
+        * `'id[23]'` - only the node with id 23, this is equivalent to the integer target `23`
         * `'cats&topFrame&tab[3]'` - only nodes subscribing to cat that are in the top frame and in tab id 3
         * `'dog|food&topFrame'` - nodes that subscribe to dog or (subscribe to food and are in the top frame)
         * `'rats|lions|zebras'` - nodes that subscribe to rats or lions or zebras
@@ -313,7 +314,7 @@ function loadClient (_, src) {
 
 # Limitations
 
-1. Mosi introduces a little overhead. If raw performance is your number one goal, use the stock messaging apis.
+1. Mosi introduces a little overhead. If raw performance is your number one goal, use the stock messaging APIs.
 2. Mosi requires the core be a persistent background page in its current implementation. A plan for an event page version is in the works.
 3. Mosi uses a star architecture in which all messages are sent to the background page, which then forwards the message to all subscribed nodes.
 4. Mosi uses es6 features directly with no precompilation because it is designed for Chrome Extensions, and Chrome supports es6. You still need an es6 module bundler like Webpack 2.

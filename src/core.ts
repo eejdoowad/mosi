@@ -190,6 +190,10 @@ class Core extends Node {
           if (frameCondition) {
             return connection.frameId === parseInt(frameCondition[1], 10);
           }
+          const idCondition = condition.match(/id\[(\d+)\]/);
+          if (idCondition) {
+            return connection.id === parseInt(idCondition[1], 10);
+          }
           return false;
         }).every((conditionMet) => conditionMet);
         if (allConditionsMet) return true;
@@ -220,17 +224,22 @@ class Core extends Node {
     });
   }
 
-  _get = async (src: number, dst: Destination, action: string, arg: any): Promise<GetResult[]> => {
+  _get = (src: number, dst: Destination, action: string, arg: any): Promise<GetResult[]> => {
     const [targetSelf, targets] = this.getTargets(src, dst);
     const localResult: Array<Promise<GetResult>> = (targetSelf)
       ? [this._getLocal(src, action, arg)]
       : [];
-    const remoteResults = targets.map((target) =>
-      this._getRemote(target, src, action, arg)
-    );
+    const remoteResults = targets.map((target) => {
+      return this._getRemote(target, src, action, arg)
+    });
 
     // TODO: Proper Promise handling (don't fail if any fails)
-    return Promise.all([...localResult, ...remoteResults]);
+    try {
+      return Promise.all([...localResult, ...remoteResults]);
+    } catch (e) {
+      console.error(e, 'connections: ', this.connections);
+      return Promise.resolve([]);
+    }
   }
 
   get = this._get.bind(undefined, 1);
