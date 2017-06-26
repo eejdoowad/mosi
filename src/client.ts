@@ -14,6 +14,13 @@ class Client extends Node {
     this.port = chrome.runtime.connect({name: JSON.stringify(connectionInfo)});
     this.port.onDisconnect.addListener(this.disconnectListener);
     this.port.onMessage.addListener(this.messageListener);
+    // firefox doesn't fire port.onDisconnect on the background page for navigation
+    // events so every content script must manually call port.disconnect() on unload
+    // TODO: remove this event listener when the following bug is fixed
+    // https://bugzilla.mozilla.org/show_bug.cgi?id=1370368
+    window.addEventListener('beforeunload', () => {
+      this.port.disconnect();
+    })
   }
 
   /**
