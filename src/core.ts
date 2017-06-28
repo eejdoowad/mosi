@@ -1,4 +1,13 @@
-import { Action, ActionDetails, Config, Destination, GetResult, Message, Node, Transactions  } from './node';
+import {
+  Action,
+  ActionDetails,
+  Config, Destination,
+  GetResult,
+  Message,
+  Node,
+  Transactions,
+  DEFAULT_TIMEOUT
+} from './node';
 
 interface Connection {
   port?: chrome.runtime.Port;
@@ -212,9 +221,9 @@ class Core extends Node {
     }
   }
 
-  _getRemote = (connection: Connection, src: number, action: string, arg: any): Promise<GetResult> => {
+  _getRemote = (connection: Connection, src: number, action: string, arg: any, timeout: number): Promise<GetResult> => {
     return new Promise<GetResult>((resolve, reject) => {
-      const tid = connection.transactions.new(resolve, reject);
+      const tid = connection.transactions.new(resolve, reject, timeout);
       if (connection.port) {
         this.log('Tx', 'get', src, connection.id, action, arg, tid);
         connection.port.postMessage({ t: 'get', src, dst: connection.id , action,  arg, tid });
@@ -224,13 +233,13 @@ class Core extends Node {
     });
   }
 
-  _get = (src: number, dst: Destination, action: string, arg: any): Promise<GetResult[]> => {
+  _get = (src: number, dst: Destination, action: string, arg: any, timeout: number = DEFAULT_TIMEOUT): Promise<GetResult[]> => {
     const [targetSelf, targets] = this.getTargets(src, dst);
     const localResult: Array<Promise<GetResult>> = (targetSelf)
       ? [this._getLocal(src, action, arg)]
       : [];
     const remoteResults = targets.map((target) => {
-      return this._getRemote(target, src, action, arg)
+      return this._getRemote(target, src, action, arg, timeout)
     });
 
     // TODO: Proper Promise handling (don't fail if any fails)
@@ -259,7 +268,7 @@ class Core extends Node {
   /**
    * Handles messages on receipt by calling the appropriate internal function
    */
-  messageListener = ({ src, dst, t, action, arg, tid, res }: Message, port: chrome.runtime.Port) => {
+  messageListener = ({ src, dst, t, action, arg, tid, res, timeout }: Message, port: chrome.runtime.Port) => {
     if (src === undefined) src = (<Connection> this.connections.getByPort(port)).id;
     switch (t) {
       case 'msg':
@@ -268,7 +277,7 @@ class Core extends Node {
         break;
       case 'get':
         this.log('Rx', 'get', src, dst, action, arg, tid);
-        this._get(src, dst, action, arg).then((result) => {
+        this._get(src, dst, action, arg, <number>timeout).then((result) => {
           this.log('Tx', 'rsp', <number>src, dst, action, result, tid);
           port.postMessage({ t: 'rsp', src: dst, dst: src, action, res: result, tid });
         }).catch((e) => {

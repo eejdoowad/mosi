@@ -67,7 +67,10 @@ const result = await get(
   action,
   
   // the argument to be passed to the action handlers
-  arg
+  arg,
+
+  // how many milliseconds to wait for the response before a timeout exception is thrown
+  timeout
 );
 
 // the value returned by the action handler
@@ -262,7 +265,7 @@ msg(
 
 ## get - sends a message to target node(s) and receives the reponse
 
-`get` sends a message to target node(s) and returns a promise for an array of responses from every messaged node. The arguments of `get` are identical to the arguments of `msg`, A response is an object which will have exactly one of two properties: `v` and `e`. `v` is short for value, which will be set to the value returned by the target node's action handler. `e` is short for error, and will be set if something went wrong retreiving the response.
+`get` sends a message to target node(s) and returns a promise for an array of responses from every messaged node. The first arguments of `get` are identical to the argumentss of `msg`, but an optional third argument `timeout` specifies how many milliseconds to wait for the response before a timeout exception is thrown. The default timeout is 5 seconds. A response is an array of objects, one per target node. Each object has exactly one of two properties: `v` and `e`. `v` is short for value, which will be set to the value returned by the target node's action handler. `e` is short for error, and will be set if something went wrong retreiving the response.
 
 ```javascript
 // get returns a promise of an array of results
@@ -275,6 +278,9 @@ const result = await get(
   
   // the argument to be passed to the action handlers
   arg
+
+  // how many milliseconds to wait for the response before a timeout exception is thrown
+  timeout
 );
 
 // the value returned by the action handler

@@ -1,4 +1,12 @@
-import { Action, Config, Destination, GetResult, Message, Node, Transactions } from './node';
+import { Action,
+  Config,
+  Destination,
+  GetResult,
+  Message,
+  Node,
+  Transactions,
+  DEFAULT_TIMEOUT
+} from './node';
 
 class Client extends Node {
 
@@ -46,11 +54,11 @@ class Client extends Node {
     }
   }
 
-  _getRemote = (dst: Destination, action: string, arg: any): Promise<any[]> =>
+  _getRemote = (dst: Destination, action: string, arg: any, timeout: number): Promise<any[]> =>
     new Promise<GetResult[]>((resolve, reject) => {
-      const tid = this.transactions.new(resolve, reject);
+      const tid = this.transactions.new(resolve, reject, timeout);
       this.log('Tx', 'get', 0, dst, action, arg, tid);
-      this.port.postMessage({t: 'get', dst, action, arg, tid });
+      this.port.postMessage({t: 'get', dst, action, arg, tid, timeout });
     });
   
   /**
@@ -58,10 +66,10 @@ class Client extends Node {
    * localId will be set to 0 if called locally
    * localId will be set to the node's global id if called from some other node
    */
-  get = async (dst: Destination, action: string, arg: any): Promise<GetResult[]> => {
+  get = async (dst: Destination, action: string, arg: any, timeout: number = DEFAULT_TIMEOUT): Promise<GetResult[]> => {
      return (dst === 0)
       ? [await this._getLocal(0, 0, action, arg)]
-      : await this._getRemote(dst, action, arg);
+      : await this._getRemote(dst, action, arg, timeout);
   }
 
   disconnectListener = (port: chrome.runtime.Port): void => {

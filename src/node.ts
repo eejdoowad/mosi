@@ -25,6 +25,7 @@ export interface Message {
   arg?: any;
   tid?: number;
   res?: any;
+  timeout?: number;
 };
 export interface MessageListener { (message: Message, port: chrome.runtime.Port): void; }
 
@@ -44,27 +45,28 @@ type Logger = (
   tid?: number
 ) => void;
 
+export const DEFAULT_TIMEOUT = 5000;
+
 export class Transactions {
   tid = 0;
   transactions: { [key: number]: TransactionInfo} = {};
-  timeout: number;
-  constructor(timeout = 1000) { this.timeout = timeout; }
-  new = (resolve: Function, reject: Function) => {
+  new = (resolve: Function, reject: Function, timeout: number) => {
     const tid = ++this.tid;
     const timer = setTimeout(() => {
-      this.delete(tid);
+      delete this.transactions[tid];
       reject(`Transaction ${tid} timed out.`);
-    }, this.timeout);
+    }, timeout);
     this.transactions[tid] = { resolve, reject, timer}
     return tid;
   }
-  delete = (tid: number) => {
-    clearTimeout(this.transactions[tid].timer);
-    delete this.transactions[tid];
-  }
   complete = (tid: number, res: GetResult) => {
-    this.transactions[tid].resolve(res);
-    this.delete(tid);
+    // The transaction may have already timed out, so check if it still exists
+    const transaction = this.transactions[tid];
+    if (transaction) {
+      transaction.resolve(res);
+      clearTimeout(transaction.timer);
+      delete this.transactions[tid];
+    }
   }
 }
 
@@ -76,7 +78,7 @@ export abstract class Node {
 
   abstract init: (config: Config) => void;
   abstract msg: (dst: Destination, action: string, arg: any, src: string) => void;
-  abstract get: (dst: Destination, action: string, arg: any) => Promise<GetResult[]>;
+  abstract get: (dst: Destination, action: string, arg: any, timeout: number) => Promise<GetResult[]>;
   abstract disconnectListener: (port: chrome.runtime.Port) => void;
   abstract messageListener: ({ src, dst, t, action, arg }: Message, port: chrome.runtime.Port) => void;
 

@@ -21,7 +21,7 @@ export declare function init(
 export declare function msg(target: number | string, action: string, arg?: any): void;
 
 /** Message the target node(s) and fetches the response(s) */
-export declare function get(target: number | string, action: string, arg?: any): Promise<{
+export declare function get(target: number | string, action: string, arg?: any, timeout?: number): Promise<{
   id: number
   v?: any;
   e?: any;
