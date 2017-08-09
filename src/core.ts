@@ -191,6 +191,9 @@ class Core extends Node {
           if (condition === 'thisTab') {
             return connection.tabId === (<Connection>this.connections.getById(src)).tabId;
           }
+          if (condition === 'other') {
+            return connection.id !== (<Connection>this.connections.getById(src)).id;
+          }
           const tabCondition = condition.match(/tab\[(\d+)\]/);
           if (tabCondition) {
             return connection.tabId === parseInt(tabCondition[1], 10);
