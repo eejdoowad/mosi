@@ -1,6 +1,6 @@
 # Mosi
 
-Mosi is a minimal javascript library (written in Typescript) that simplifies Chrome extension messaging. Mosi makes communication organized and intuitive through a declarative, event-driven, pub/sub API with built-in logging.
+Mosi is a minimal Javascript library (written in Typescript) that simplifies Chrome extension messaging. Mosi makes communication organized and intuitive through a declarative, event-driven, pub/sub API with built-in logging.
 
 Check out [Saka Key](https://github.com/lusakasa/saka-key) to see how Mosi is used in a real extension.
 
@@ -25,10 +25,10 @@ init({
   // which messages it subscribes to
   subscriptions: [string],
 
-  // actions to execute once the node is connected
+  // actions to execute in background page once a node is connected
   onConnect: [{action: string, arg: any}],
 
-  // actions to execute when the node disconnects
+  // actions to execute in background page when a node disconneced
   onDisconnect: [{action: string, arg: any}}],
 
   // action handlers to execute when a message is received
@@ -37,6 +37,9 @@ init({
     action2: (arg, src) => { doSomething(arg, src); },
     ...
   }
+
+  // callback to execute locally when a node disconnects
+  onClientDisconnect: () => void,
 });
 ```
 
@@ -189,7 +192,7 @@ The following functions are provided by each package:
 
 * `actions` is an object whose keys are action types and values are action handlers. An action handler is a function that is called a message is received. All calls to `msg` and `get` must specify the name of the action to be executed. If a client receives a message for an action type it doesn't have a handler for, it throws an error. The first argument of an action handler is the `arg` specified by the call to `msg` or `get` by the sending node. The second argument is the `src` node identifier, which is an integer. You can send a response back to the message source from a handler by calling `msg` or `get` and specifying `src` as the target. The value returned by an action handler is the result returned to calls to `get`.
 
-* `subscriptions` is an array of strings corresponding to a node's subscription. A node will receive all message targeted to any of its subscriptions.
+* `onClientDisconnect` is a callback to execute when a node disconnects. This property is only valid in Mosi clients, not the core background page.
 
 ```javascript
 init({
@@ -208,6 +211,9 @@ init({
     action2: (arg, src) => { doSomething(arg, src); },
     ...
   }
+
+  // callback to execute locally when a node disconnects
+  onClientDisconnect: () => void,
 });
 ```
 
@@ -230,7 +236,7 @@ init({
 
       * Other conditions take the form of selectors like only 'only nodes in the tab with id 4' or 'only nodes in frames with id 0.'  Conditions can be cominbined with '&' so that 'a&b' means a node will only receive a message if it meets both conditions 'a' and 'b'. Conditions can also be combined with '|' so that 'a|b' means a node will receive a message if it meets either condition 'a' or 'b'. & has higher precedence than |.
 
-      * The reserved condtion strings are: `tab[N]`, `frame[N]`, `id[N]`, `topFrame`, `childFrames`, `thisTab`, and `otherFrames`
+      * The reserved condtion strings are: `tab[N]`, `frame[N]`, `id[N]`, `topFrame`, `childFrames`, `thisTab`,  `other`, and `otherFrames`
       
       * Examle target strings:
 
@@ -241,9 +247,10 @@ init({
         * `'tab[5]&childFrames'` - all nodes in tab id 5 that aren't the top node
         * `'id[23]'` - only the node with id 23, this is equivalent to the integer target `23`
         * `'cats&topFrame&tab[3]'` - only nodes subscribing to cat that are in the top frame and in tab id 3
-        * `'dog|food&topFrame'` - nodes that subscribe to dog or (subscribe to food and are in the top frame)
-        * `'rats|lions|zebras'` - nodes that subscribe to rats or lions or zebras
+        * `'dog|food&topFrame'` - nodes that subscribe to 'dog' or (subscribe to 'food' and are in the top frame)
+        * `'rats|lions|zebras'` - nodes that subscribe to 'rats' or 'lions' or 'zebras'
         * `thisTab` - all frames in the current tab
+        * `mango&other` - only nodes subscribing to 'mango' but not the current node
         * `thisTab&otherFrames` - all frames in the current tab except the source frame, NOTE: `otherFrames` should always be used in conjunction with `thisTab`
   
   * `action` is a string corresponding to the name of the action handler to be executed by target nodes. Target nodes that don't have a handler for the specified action will throw errors.

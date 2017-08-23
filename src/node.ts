@@ -15,8 +15,9 @@ export interface Config {
   onConnect?: ActionDetails[];
   onDisconnect?: ActionDetails[];
   actions: { [key: string]: Action };
+  onClientDisconnect?: () => void;
   log: boolean;
-}
+} 
 export interface Message {
   src?: number;
   dst: Destination;

@@ -13,11 +13,13 @@ class Client extends Node {
   port: chrome.runtime.Port;
   timeout = 1000;
   transactions = new Transactions();
+  onClientDisconnect?: () => void;
 
-  init = ({ subscriptions = [], onConnect = [], onDisconnect = [], actions, log = false }: Config) => {
+  init = ({ subscriptions = [], onConnect = [], onDisconnect = [], actions, log = false, onClientDisconnect }: Config) => {
     this.initLogging(log);
     this.subscriptions = subscriptions;
     this.actions = actions;
+    this.onClientDisconnect = onClientDisconnect;
     const connectionInfo = { subs: this.subscriptions, onConnect, onDisconnect };
     this.port = chrome.runtime.connect({name: JSON.stringify(connectionInfo)});
     this.port.onDisconnect.addListener(this.disconnectListener);
@@ -73,7 +75,7 @@ class Client extends Node {
   }
 
   disconnectListener = (port: chrome.runtime.Port): void => {
-    console.error('ERROR. The port to the background page has closed.', chrome.runtime.lastError || '');
+    this.onClientDisconnect && this.onClientDisconnect();
   }
 
   /**
