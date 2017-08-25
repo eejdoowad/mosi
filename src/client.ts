@@ -1,4 +1,6 @@
-import { Action,
+import {
+  Action,
+  ActionDetails,
   Config,
   Destination,
   GetResult,
@@ -14,16 +16,17 @@ class Client extends Node {
   timeout = 1000;
   transactions = new Transactions();
   onClientDisconnect?: () => void;
+  onConnect: ActionDetails[];
+  onDisconnect: ActionDetails[];
 
   init = ({ subscriptions = [], onConnect = [], onDisconnect = [], actions, log = false, onClientDisconnect }: Config) => {
     this.initLogging(log);
     this.subscriptions = subscriptions;
     this.actions = actions;
+    this.onConnect = onConnect;
+    this.onDisconnect = onDisconnect;
     this.onClientDisconnect = onClientDisconnect;
-    const connectionInfo = { subs: this.subscriptions, onConnect, onDisconnect };
-    this.port = chrome.runtime.connect({name: JSON.stringify(connectionInfo)});
-    this.port.onDisconnect.addListener(this.disconnectListener);
-    this.port.onMessage.addListener(this.messageListener);
+    this.connect();
     // firefox doesn't fire port.onDisconnect on the background page for navigation
     // events so every content script must manually call port.disconnect() on unload
     // TODO: remove this event listener when the following bug is fixed
@@ -31,6 +34,14 @@ class Client extends Node {
     window.addEventListener('beforeunload', () => {
       this.port.disconnect();
     })
+  }
+
+  connect = () => {
+    const { subscriptions: subs, onConnect, onDisconnect } = this;
+    const connectionInfo = { name: JSON.stringify({ subs, onConnect, onDisconnect })};
+    this.port = chrome.runtime.connect(connectionInfo);
+    this.port.onDisconnect.addListener(this.disconnectListener);
+    this.port.onMessage.addListener(this.messageListener);
   }
 
   /**
@@ -93,13 +104,18 @@ class Client extends Node {
         break;
       case 'get':
         this.log('Rx', 'get', <number>src, dst, action, arg, tid);
-        this._getLocal(<number> dst, <number> src, action, arg).then((res) => {
-        this.log('Tx', 'rsp', <number>src, dst, action, res, tid);
-          this.port.postMessage({ t: 'rsp', src: dst, dst: src, action, tid, res });
-        }).catch((e) => {
-          this.log('Tx', 'rsp', <number>src, dst, action, res, tid);
-          this.port.postMessage({ t: 'rsp', src: dst, dst: src, action, tid, res: { e } });
-        });
+        this._getLocal(<number> dst, <number> src, action, arg)
+          .then((res) => {
+           try {
+              this.log('Tx', 'rsp', <number>src, dst, action, res, tid);
+              this.port.postMessage({ t: 'rsp', src: dst, dst: src, action, tid, res });
+            } catch (e) {} // the port may disconnect if the user navigated to a new page
+          }).catch((e) => {
+            try {
+              this.log('Tx', 'rsp', <number>src, dst, action, res, tid);
+              this.port.postMessage({ t: 'rsp', src: dst, dst: src, action, tid, res: { e } });
+            } catch (e) {}
+          });
         break;
       case 'rsp':
         this.log('Rx', 'rsp', <number>src, dst, action, res, tid);

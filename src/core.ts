@@ -47,9 +47,7 @@ class Connections {
     // instead of relying on timeouts.
     // const transactions = connection.transactions.transactions;
     // for (const tid in transactions) {
-    //     if (transactions.hasOwnProperty(tid)) {
-    //       connection.transactions.delete(tid);
-    //     }
+    //     connection.transactions.delete(tid);
     // }
     this.connectionsById.delete(connection.id);
     this.connectionsByPort.delete(port);
